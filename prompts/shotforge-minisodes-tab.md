@@ -89,10 +89,15 @@ Page actions:
   - fail builds older than 12 h (`expireBuild`).
 - `trailer` `{ concept (max 1500), genre, aspect_ratio ("9:16" | "16:9"), language }` → insert a row with
   `trailer_status: 'writing'`, submit the writer to the fal queue `openrouter/router` with
-  `{ model: "anthropic/claude-opus-5.5", system_prompt: TRAILER_SYSTEM, prompt: <concept, genre, aspect, language>, max_tokens: 4000 }`
+  `{ model: "anthropic/claude-opus-5.5", system_prompt: TRAILER_SYSTEM, prompt: <concept, genre, aspect, language>, max_tokens: 8000, reasoning: true }`
+  (`reasoning: true` is mandatory: without it fal answers "Reasoning is mandatory for this endpoint and cannot be
+  disabled." and every trailer falls back to the template)
   (the same way Movie Maker's story director calls it), store `writer_request_id`, return `{ episode }`.
   Max 4 rows filming at once per user (429), like video-to-game.
 - `retrailer` `{ id, prompt? }` → re-film the trailer with the edited prompt (or the same one) straight to H3.
+  With `rewrite: true` and an optional `direction` (500 chars), it re-runs the writer for the row first (adding
+  "Director's notes for the trailer: <direction>" to the writer prompt), then films. Prompts are capped at 4,000
+  characters.
 - `create` `{ id, settings, again? }` → requires `trailer_status === 'ready'`; same guards and optimistic claim as
   video-to-game's `build`; reads `CLAUDE_MINISODE_ROUTINE_FIRE_URL` and `CLAUDE_MINISODE_ROUTINE_TOKEN` (503
   "Claude Code isn't connected to Minisodes yet" when missing; same FIRE_URL regex); new 64-hex deliver token,
@@ -143,35 +148,101 @@ Build-side actions, body `{ action, episodeId, token, ... }`, token checked agai
 TRAILER_SYSTEM (use verbatim):
 
 ```text
-You write the prompt for a 15-second teaser trailer of a minisode: a 1 to 2 minute micro-drama for social
-media. MiniMax H3 Max films it in one text-to-video generation, and it becomes the look document for the whole
-episode: the cast, the place, the light and the tone that every later shot will match. Return JSON only:
-{"title": "...", "logline": "...", "prompt": "..."}.
+You are a trailer director and editor. You write the prompt for a 15-second teaser trailer of a minisode, a 1 to
+2 minute episode for social media. MiniMax H3 Max films your prompt in one text-to-video generation with native
+sound, and the result becomes the look document for the whole episode: every later shot will match its
+characters, places, light and style. Return JSON only, with no markdown fences:
+{"title": "...", "logline": "...", "prompt": "..."}
 
-The prompt:
-- Opens mid-action on the most loaded moment: a face or a threat in the first frame. No title card, no
-  establishing shot, no logo, no slow start.
-- 4 to 6 shots with time codes (0-2 s, 2-5 s, ...), hard cuts, each with shot size, angle, lens and camera move.
-- At most 3 characters and 2 locations. Describe each character once, precisely enough to draw: age, hair, skin,
-  build, wardrobe colors, one signature accessory. Original people only.
-- For 9:16: faces and hands, not landscapes; eyes in the upper third; nothing important in the bottom fifth or
-  along the right edge. For 16:9, compose for widescreen.
-- One or two spoken lines, 8 words or fewer each, in quotes, with who says them and how; lip-synced, in the
-  requested language.
-- One sentence for the look: lens, light, grade, texture; photoreal people, physically plausible light.
-- Sound: native audio with the dialogue and ambience, a sparse trailer score allowed, a low hit on the last cut.
-  No subtitles, no captions, no on-screen text.
-- Ends on a question, never on the answer.
-- Genre: drama = pressure and secrets; comedy = an absurd image or a line nobody should say, with timing beats;
-  romantic comedy = chemistry, the almost-kiss, the wrong-moment reveal; thriller = a clock; horror = one wrong
-  detail in a normal frame; mystery = a clue nobody else sees.
-- Under 2,500 characters. No real people, brands or existing franchises.
-The title is 1 to 3 words. The logline is one sentence: who wants what, and what is in the way.
+Write the prompt in English. Spoken lines are in the requested spoken language.
+
+Build the prompt as a real trailer, in this order:
+
+1. RULES, the first line, exactly: "No title cards, no subtitles, no captions, no on-screen text, no logos."
+2. STYLE, one sentence: the format (vertical 9:16 or widescreen 16:9), the medium and the look. Take the medium
+   from the concept. If it says cartoon, animated, anime, claymation, stop-motion, puppet, or the hero is not
+   human (an animal, an object, a food), make it a stylized animated feature-film look: describe shapes,
+   materials, color and light, and never name a studio or a franchise. Otherwise photoreal live action with a
+   cinematic 35 mm look.
+3. CHARACTERS: at most 3, each described once, precisely enough to draw: name, species or age, body shape,
+   colors, wardrobe, one signature prop, one personality tell. Use exactly the same words if they reappear.
+4. SHOTS: 6 to 8 shots with time codes that cover 0-15 s with no gap. Each shot starts with its transition
+   keyword (COLD OPEN, SMASH CUT, HARD CUT, MATCH CUT, WHIP PAN, CRASH ZOOM, SPEED RAMP), then shot size, angle,
+   lens or camera move, then the action as visible behavior. Follow the trailer arc:
+   - 0-2 s COLD OPEN: the most loaded moment of the story, mid-action, a face in the first frame, and the hook
+     line by 1.5 s.
+   - 2-5 s WORLD AND WANT: who the hero is and what they want, in one strong image.
+   - 5-9 s COMPLICATION: the other character and the conflict in a quick exchange, then a rapid montage of two
+     or three one-second shots that escalate.
+   - 9-12 s THE TURN: the biggest image of the story, the money shot, on a beat drop or an impact.
+   - 12-15 s BUTTON: a held reaction or a last line that leaves a question, then a hard cut to black on a
+     sound sting. No title card.
+5. DIALOGUE: two or three lines in total, 8 words or fewer each, in quotes, with who says it and how,
+   lip-synced.
+6. SOUND: native audio with the dialogue and the ambience of the place, plus trailer sound design: whooshes on
+   the cuts, a low riser, impact hits and one final sting, and a sparse trailer score that drops out right
+   before the last line.
+
+Genre engine: drama = a secret, pressure, a face that breaks; comedy = an absurd image, escalation in threes, a
+pause before the punchline, a reaction shot as the button; romantic comedy = chemistry, the almost-kiss, the
+wrong-moment interruption; thriller = a clock and a threat behind the hero; horror = one wrong detail in a normal
+frame, silence before the sting; mystery = a clue only the viewer sees; sci-fi and fantasy = one impossible rule
+shown in action. If the concept's tone and the chosen genre disagree, keep the concept's world and play it in
+the chosen genre.
+
+Staging: in a vertical frame, faces and hands, not landscapes; eyes in the upper third; nothing important in
+the bottom fifth or along the right edge. In a widescreen frame, compose for 16:9. One or two places. The same
+light in every shot, physically plausible. Original characters only: no real people, brands, studios or
+existing franchises.
+
+Keep the prompt under 3,000 characters. The title (1 to 3 words) and the logline (one sentence: who wants what,
+and what is in the way) are for the app only and never appear in the video.
 ```
 
-Fallback trailer prompt when the writer fails: `"No subtitles, no on-screen text. <aspect> <genre> micro-drama
-teaser, photoreal, cinematic 35 mm look, shallow depth of field. Open mid-action on the most dramatic moment of
-this story, faces close, 5 shots with hard cuts, one short spoken line, end on an unanswered question: <concept>"`.
+Fallback when the writer fails (the trailer is still a real trailer: cut keywords, time codes, story, genre beats,
+the medium the concept asks for, dialogue in the chosen language):
+
+```ts
+const ANIMATED = /\b(cartoon|animated|animation|anime|claymation|clay|stop[- ]motion|puppet|3d animated|2d animated)\b/i;
+const GENRE_MONTAGE: Record<string, string> = {
+  drama: "a secret surfaces, a hand trembles, a face starts to break",
+  comedy: "three escalating mishaps, each worse than the last, a beat of silence before the punchline",
+  romcom: "a near-kiss, an interruption at the worst moment, a look held too long",
+  thriller: "a clock running down, a threat closing in behind the hero, a door that will not open",
+  horror: "one wrong detail in a normal room, it moves closer, silence before the sting",
+  mystery: "a clue only the viewer sees, a lie, a glance that gives someone away",
+  scifi: "one impossible rule shown in action, its cost, the hero choosing anyway",
+  fantasy: "one impossible rule shown in action, its cost, the hero choosing anyway",
+};
+function fallbackPrompt(concept: string, genre: string, aspect: string, language = "en") {
+  const vertical = aspect === "9:16";
+  const style = ANIMATED.test(concept)
+    ? "stylized animated feature-film look, soft rounded 3D shapes, tactile materials, saturated but harmonious colors, warm key light from the left in every shot"
+    : "photoreal live action, cinematic 35 mm film look, shallow depth of field, natural skin texture, warm key light from the left in every shot";
+  const frame = vertical
+    ? "Vertical 9:16, faces and hands, eyes in the upper third, nothing important in the bottom fifth"
+    : "Widescreen 16:9";
+  const label = (GENRES[genre] ?? genre).toLowerCase();
+  const lang = LANGUAGES[language] ?? "English";
+  return [
+    "No title cards, no subtitles, no captions, no on-screen text, no logos.",
+    `STYLE: ${frame}, ${style}. A ${label} teaser trailer, 15 seconds, 7 shots.`,
+    `STORY: ${concept.trim()}`,
+    "SHOTS:",
+    "0-2 s COLD OPEN: extreme close-up, crash zoom in, mid-action on the hero at the most loaded moment of this story; by 1.5 s the hero says one short line, 8 words or fewer, that raises a question.",
+    "2-5 s HARD CUT: medium shot, low angle, slow push-in: the hero in their world doing what they love, showing what they want.",
+    "5-7 s WHIP PAN: two-shot: the other main character confronts the hero; a short, sharp reply line.",
+    `7-9 s SMASH CUT: a montage of two one-second close-ups: ${GENRE_MONTAGE[genre] ?? GENRE_MONTAGE.drama}.`,
+    "9-12 s SPEED RAMP: wide shot, the biggest image of this story, slow motion into an impact on the beat drop.",
+    "12-15 s HARD CUT: a held close-up reaction of the hero; silence; a last whispered line that leaves the question open; hard cut to black on a sound sting.",
+    `DIALOGUE: three lines in total, 8 words or fewer each, lip-synced, in ${lang}.`,
+    "SOUND: native audio with the dialogue and the ambience, whooshes on every cut, a low riser, impact hits, a sparse trailer score that drops out before the last line, one final sting.",
+  ].join("\n").slice(0, MAX_PROMPT);
+}
+```
+
+When the writer fails, `error` says so ("Claude's trailer writer failed (<reason>); this trailer used the basic
+template.") and the page offers **Rewrite with Claude**.
 
 ### Client: `src/lib/minisodes.ts` and `src/pages/Minisodes.tsx`
 
@@ -186,7 +257,8 @@ this story, faces close, 5 shots with hard cuts, one short spoken line, end on a
   2. **Trailer card**: a black stage with the right aspect (9:16 stage is narrow and tall, centered,
      `max-h-[75vh]`); states "Claude is writing the trailer…" then "Filming the trailer…" with the elapsed clock,
      then the video with controls. Under it the title, logline and the trailer prompt in a collapsible,
-     editable box with **Refilm trailer**.
+     editable box with **Refilm trailer** and **Rewrite with Claude** (with an optional "Direction for the
+     trailer"). When `error` says the basic template was used, show it in amber with that button.
   3. **Create**: button **Create minisode** opens a settings panel: Duration slider 60–120 s, step 15, default
      60; Format (prefilled from the trailer); **Video model** dropdown with one option "MiniMax H3 Max ·
      reference to video" (designed to receive more models later); Resolution (Auto default, 480P, 768P, 1080P);
