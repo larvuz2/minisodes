@@ -83,11 +83,19 @@ with Playwright and Chromium (`npm i three@0.160.0` to serve Three.js locally, e
 
 ### From ShotForge
 
-The Minisodes tab of ShotForge (the Phatty Acid app) writes and films the trailer, then "Generate minisode" fires a
-Claude Code routine on this repository with the trailer, the settings and a delivery token. The session reports
-each stage, shows previews (cast, locations, voices, takes, the pace map) and uploads the episode back.
-Routine setup and saved prompt: [`prompts/shotforge-routine.md`](prompts/shotforge-routine.md). The tab's
-contract: [`prompts/shotforge-minisodes-tab.md`](prompts/shotforge-minisodes-tab.md).
+The Minisodes tab of ShotForge (the Phatty Acid app) offers three modes:
+- **Trailer, then autopilot**: H3 films a 15 s trailer; you watch it, then Claude makes the episode.
+- **Straight to autopilot**: no trailer; Claude starts at once.
+- **Guided**: Claude stops for your approval of the cast (sheets and voices), the story (editable beat by beat) and
+  the locations (3 or more views per place), regenerating only what you comment on. After the last approval it
+  films and finishes on its own.
+
+Each request fires a Claude Code routine on this repository; guided steps are separate runs that save and restore
+their work folder through ShotForge storage. The session reports each stage, shows previews and uploads the episode
+back, and finished episodes land in a streaming-style gallery.
+
+Routine setup and saved prompt: [`prompts/shotforge-routine.md`](prompts/shotforge-routine.md). The tab's contract:
+[`prompts/shotforge-minisodes-tab.md`](prompts/shotforge-minisodes-tab.md).
 
 ## Costs (fal, November 2026)
 

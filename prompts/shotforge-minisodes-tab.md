@@ -281,3 +281,185 @@ template.") and the page offers **Rewrite with Claude**.
 
 `CLAUDE_MINISODE_ROUTINE_FIRE_URL` and `CLAUDE_MINISODE_ROUTINE_TOKEN`: the API trigger of a Claude Code routine on
 `larvuz2/minisodes` (see `prompts/shotforge-routine.md`). Until they are set, Create shows the 503 message.
+
+## Update 2: three modes, guided approvals, the gallery
+
+The second brief given to the Lovable agent. It extends the contract above; `skills/minisode/scripts/shotforge_deliver.py checkpoint` and `restore` are its run side.
+
+Redesign the Minisodes page and add three ways to make an episode: trailer then autopilot (what exists), straight to autopilot with no trailer, and a guided mode where the user approves the cast, then the story, then the locations before Claude films. Keep everything that works today (trailer writer, Rewrite with Claude, the build actions note/upload-urls/preview/deliver/fail, the routine fire). Do not touch Video to Game or other pages. Do not start any paid fal generation or fire the routine while testing; use mocks.
+
+### How guided mode works (the important part)
+
+A Claude Code run cannot wait hours for a click, so a guided episode is made in phases, each phase its own fire of the same routine:
+
+- Phase `cast`: Claude drafts the story, makes each character's sheet and voice sample, uploads them plus its saved work folder ("state"), calls the new build action `checkpoint`, and the run ends. The episode is now `awaiting_approval`.
+- The user approves, or comments on specific characters. A comment fires phase `cast` again with `revision: true` and the comments; approving fires phase `story`.
+- Phase `story` → checkpoint with a story summary the user can edit, comment on, or approve.
+- Phase `locations` → checkpoint with 3+ views per place.
+- After the last approval, phase `finish` makes the rest and delivers.
+
+Every fire after the first sends signed URLs of the saved state so the run can restore it.
+
+### Database: `drizzle/migrations/0004_minisodes_guided.sql` (add to `_journal.json` and apply)
+
+```sql
+ALTER TABLE public.minisodes
+  ADD COLUMN with_trailer boolean NOT NULL DEFAULT true,
+  ADD COLUMN guided boolean NOT NULL DEFAULT false,
+  ADD COLUMN phase text,                                      -- last phase fired: full | cast | story | locations | finish
+  ADD COLUMN approval_stage text,                             -- cast | story | locations while waiting for the user
+  ADD COLUMN checkpoint jsonb,                                -- {stage, items, summary, note, at}
+  ADD COLUMN approvals jsonb NOT NULL DEFAULT '{}'::jsonb,    -- {cast: {approved_at, rounds}, story: {...}, locations: {...}}
+  ADD COLUMN state_paths jsonb NOT NULL DEFAULT '[]'::jsonb,  -- storage paths (under <id>/out/) of the saved work folder parts, in order
+  ADD COLUMN fires integer NOT NULL DEFAULT 0;
+CREATE INDEX minisodes_built_created ON public.minisodes (build_status, created_at DESC);
+```
+
+New values (text columns, no constraints): `trailer_status = 'skipped'` when there is no trailer; `build_status = 'awaiting_approval'`.
+
+### Edge function `supabase/functions/minisodes/index.ts`
+
+1. **`start`** (page) `{ concept, genre, aspect_ratio, language, with_trailer, guided, settings }`:
+   - Validate `settings` with `cleanSettings` and store `settings`, `with_trailer` and `guided` on the new row.
+   - `with_trailer: true` → exactly today's `trailer` flow.
+   - `with_trailer: false` → insert the row with `trailer_status: 'skipped'`, then fire at once with phase `guided ? 'cast' : 'full'`.
+   - Keep `trailer` as an alias of `start` with `with_trailer: true`.
+   - If the routine secrets are missing, return the same 503. The row stays, and the page offers **Start** again from the workspace.
+2. **`create`** `{ id, settings, again? }`:
+   - Allowed when `trailer_status` is `'ready'` or `'skipped'`.
+   - Phase is `row.guided ? 'cast' : 'full'`.
+   - `again: true` also resets `approvals`, `checkpoint`, `approval_stage` and `state_paths`.
+3. **One shared `fire(row, { phase, revision = false, feedback = null, comment = null, story_edits = null })`** used by start, create and approve:
+   - Mint a new 64-hex deliver token and store its sha256; `fires += 1`.
+   - Set:
+     - `phase`;
+     - `build_status: 'building'`;
+     - `approval_stage: null`;
+     - `build_stage` (`cast` → `cast`, `story` → `story`, `locations` → `locations`, `finish` → `shoot`, `full` → `story`);
+     - `build_note` ("Claude is drawing the cast…", "Claude is writing the story…", "Claude is building the locations…", "Thanks for the approvals. Claude is filming…", or today's note for `full`).
+   - Reset `spent_usd`, `previews`, the result URLs and `build_started_at` only on the first fire of a build: phase `full`, or phase `cast` with `revision` false and no approvals yet.
+   - Payload = today's request plus:
+     - `mode: { with_trailer, guided }`;
+     - `phase`, `revision`, `feedback`, `comment`, `story_edits`;
+     - `approved: { cast: bool, story: bool, locations: bool }`;
+     - `state_urls`: `state_paths` signed for 7 days, in order, or `null` when empty;
+     - `trailer_url` and `trailer_prompt` are `null` when skipped.
+   - Same optimistic claim, headers, error handling and `session_url` saving as today.
+4. **`checkpoint`** (build action, token-checked like the others) `{ stage: 'cast'|'story'|'locations', items: [], summary?, state: [], note?, spent_usd? }`:
+   - Validate:
+     - `items`: at most 40. Each item:
+       - `id` matching `^[\w-]{1,60}$`;
+       - `group` (80 chars), `label` (120) and `description` (600);
+       - optional `image` and `audio`: GAME_PATH paths that are uploaded under `<id>/out/`.
+     - `summary` (required for story, under 20 KB): `{ title, logline, beats: [{ id, time, text, lines: [] }] (at most 12), cliffhanger }`.
+     - `state`: 1 to 20 uploaded paths.
+   - Set:
+     - `build_status: 'awaiting_approval'`, `approval_stage: stage`, `build_stage: stage`;
+     - `checkpoint: { stage, items, summary, note, at }`;
+     - `state_paths: state`;
+     - `build_note`: the note, or "Your <stage> is ready for review.";
+     - `spent_usd` when numeric.
+   - Return `{ ok: true }`.
+5. **`approve`** (page) `{ id, stage, decision: 'approve'|'revise', feedback?: { [item_id]: string }, comment?: string, story_edits? }`:
+   - Requires `build_status === 'awaiting_approval'` and `approval_stage === stage`.
+   - Size limits: feedback values 1000 chars, at most 40 keys; comment 1000; `story_edits` under 20 KB, same shape as `summary`.
+   - `revise`: needs at least one non-empty feedback value or comment, or `story_edits` for the story stage. Do `approvals[stage].rounds += 1`, then `fire(phase: stage, revision: true, …)`.
+   - `approve`: set `approvals[stage] = { approved_at, rounds }`. The next phase is `cast → story`, `story → locations`, `locations → finish`. Pass `story_edits` along when the user edited the story and approved in one go.
+6. **`list`** (page): the user's rows that are not built, plus built rows from the last 24 hours, newest first, 30 at most, advanced as today. Sign `checkpoint.items[].image` and `audio` into `image_url`/`audio_url` (7 days).
+7. **`gallery`** (page) `{ cursor?, genre?, q?, limit? (default 18, max 36) }`:
+   - Built episodes of every allowlisted user (a shared studio library), newest first.
+   - Keyset pagination on `(created_at, id)`.
+   - Optional genre filter, and `q` matched with ilike on title, logline and concept.
+   - Returns `{ episodes: [{ id, title, logline, concept, genre, aspect_ratio, duration_s: settings.duration_s, poster_url, episode_url, clean_url, report_url, trailer_url, created_at, guided, with_trailer }], next_cursor }`, URLs signed.
+   - Without a cursor, it also returns `genres: [{ genre, count }]` for the built episodes.
+
+### Page: `src/pages/Minisodes.tsx` (home) and `src/pages/MinisodeWorkspace.tsx` (`/minisodes/:id`)
+
+The look is a dark, cinematic streaming home. Use the existing theme tokens and shadcn components; build small components (`EpisodeCard`, `GalleryRow`, `ModePicker`, `Stepper`, `CastApproval`, `StoryApproval`, `LocationsApproval`, `PlayerDialog`). Make it work well on desktop and on a phone.
+
+#### Home `/minisodes`
+
+1. **Composer** at the top, a wide glass card over a soft blurred backdrop of the newest poster:
+   - A big textarea "Describe your minisode…" (1,500 chars) with three example chips.
+   - A control row: Genre, Format (9:16 / 16:9 segmented), Language, Duration (60–120 s, step 15), and Budget with the live estimate as a popover.
+   - **Two checkboxes**, each with a one-line description:
+     - ☑ **Create a trailer first**: "Watch a 15-second teaser before anything else (about $1.20)." On by default.
+     - ☐ **Guided: approve cast, story and locations**: "Claude stops for your OK at each step before filming." Off by default.
+   - Under the checkboxes, one line describing the chosen path:
+     - "Trailer → you watch it → Claude makes the episode";
+     - "Claude starts now and makes everything";
+     - "Trailer → you approve the cast → the story → the locations → Claude films and finishes";
+     - "Claude makes the cast → you approve → story → locations → Claude films and finishes".
+   - A collapsible **More settings**: the video model dropdown, resolution, captions, director notes.
+   - The primary button reads **Make trailer** when the trailer box is ticked, otherwise **Start minisode**. It calls `start`, then opens the workspace.
+2. **Needs your approval**: a row shown only when non-empty, with amber "Cast ready for review" / "Story ready" / "Locations ready" badges.
+3. **In progress**: a row with the stage label and a thin progress bar; trailers that are writing or filming show here too.
+4. **The gallery**, Netflix style, the biggest part of the page:
+   - Big 9:16 poster cards: about 240 px wide on desktop, 2 per row on a phone. Each card has:
+     - title, genre chip, duration badge;
+     - on hover, a muted autoplay of the episode and the logline.
+   - Rows: "New episodes" first, then one row per genre with episodes (from `genres`), each with horizontal scroll, arrow buttons and **See all**.
+   - **See all** and the search field open a grid with infinite scroll (`gallery` with cursor).
+   - Clicking a card opens the **PlayerDialog**:
+     - a tall vertical player (max 85vh);
+     - title, logline, genre, duration and date;
+     - Download, Download clean, Report, and Open workspace.
+   - An elegant empty state when nothing is finished yet.
+   - Lazy-load rows as they scroll into view; this must stay fast with thousands of episodes.
+
+#### Workspace `/minisodes/:id`
+
+1. A header with the title (or the concept), genre, and mode badges (Trailer, Guided, Autopilot).
+2. The **Stepper**, horizontal on desktop and vertical on a phone:
+   - Steps: Trailer (only when `with_trailer`) → Cast → Story → Locations → Filming → Edit → Music → Done.
+   - Each step shows an icon and a short label:
+     - ✓ done: "Characters approved", "Story approved", "Locations approved";
+     - ● Claude working (spinner);
+     - ⏳ waiting for you (amber: "Your turn");
+     - ○ upcoming.
+   - Filming shows "Filming 3 of 5" when the build note carries it.
+   - In autopilot, Cast, Story and Locations are marked done automatically from `build_stage`, with no approval badge.
+3. The panel for the current step:
+   - **Trailer**: today's trailer card (player, prompt, Refilm, Rewrite with Claude, Create minisode with settings).
+   - **Cast approval** (`approval_stage: 'cast'`):
+     - A grid of character cards: a big sheet image (lightbox with zoom), name, description, and a voice player.
+     - Each card has **Looks right ✓** (a toggle) and **Change…**, which opens a textarea "What should change? e.g. shorter hair, warmer voice".
+     - A sticky footer shows "2 of 3 approved", plus an optional general comment.
+     - If any card has a note, the main button is **Regenerate 1 character with your notes** (revise). When every card is approved, it is **Approve cast & continue**.
+   - **Story approval**:
+     - Editable title and logline.
+     - The beats as a vertical timeline: a time chip, editable text, and key lines as quotes. The cliffhanger is editable too.
+     - **Rewrite with Claude** needs a "What should change?" comment.
+     - **Approve story & continue** sends `story_edits` when anything was edited.
+   - **Locations approval**:
+     - One section per place: big views in a grid or carousel (lightbox), each with its description.
+     - Each view has **Looks right ✓** and **Change…**. Use a placeholder hint like "the walls warmer, brass instead of chrome, more plants".
+     - A general comment per place, sent as a feedback entry with the key `place:<group>`.
+     - The footer offers **Regenerate N views with your notes** or **Approve locations & start filming**.
+   - **While Claude works on a step**: skeleton cards with "Claude is drawing the cast… usually 5–15 minutes", plus the Claude Code session link.
+   - **After the last approval**: a warm full-width panel:
+     - "That's it. You can leave now. I'll keep working and finish your episode in the background. Thanks for the approvals."
+     - Below it: the expected time (about 1–2 hours), the remaining stepper, spent vs budget, and the previews strip.
+   - **Done**: the episode player, the downloads and the report.
+4. **Polling**:
+   - every 5 s while a trailer is writing or filming, or a step is running;
+   - every 20 s while waiting for approval;
+   - never for the gallery.
+
+### Test (no paid jobs, no real fire)
+
+- Mock fal and the fire, and walk one guided episode through every step:
+  - start without a trailer;
+  - a fake cast checkpoint (2 items with images);
+  - revise one item;
+  - approve;
+  - a story checkpoint, edited and approved;
+  - a locations checkpoint, approved;
+  - finish;
+  - deliver.
+
+  Check each fire payload (phase, revision, feedback, story_edits, state_urls).
+- Check that a checkpoint with a path that was not uploaded is refused.
+- Check that approve is refused when the stage does not match.
+- Check that the gallery paginates.
+- Take screenshots of the home and of each approval panel with seeded fake rows, then delete every test row and test file.

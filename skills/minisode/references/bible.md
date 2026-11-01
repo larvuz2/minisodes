@@ -15,6 +15,14 @@ the light (key direction, color temperature, practicals), the lens feel (wide an
 the grade (warm or cool, contrast, blacks) and the texture (grain, halation). These become `look`, `cast` and
 `locations`. When the trailer and the concept disagree, the trailer wins: the user approved it.
 
+## Without a trailer
+
+When the user skipped the trailer, the concept, the genre and the director's notes are the brief. Decide the
+medium and the look first and write them into `look` as precisely as a trailer would show them. Then build every
+sheet from its description with `fal-ai/nano-banana-pro` (text to image) instead of `/edit`. The first approved
+sheet becomes the style reference: later sheets and plates use `/edit` with it in `image_urls`, so the cast and
+the places share one look.
+
 ## Character sheets (`kind: character_sheet`)
 
 One 16:9 sheet per character, generated with `fal-ai/nano-banana-pro/edit` from 1-3 trailer frames of that
