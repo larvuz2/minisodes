@@ -1,0 +1,94 @@
+{
+ "_note": "The plan of one minisode. Paths are relative to this file. Keys starting with _ are notes; delete them. A complete example: examples/plus-one/episode.json.",
+ "id": "episode-id",
+ "title": "Two Words",
+ "logline": "Who wants what, and what is in the way, in one sentence.",
+ "genre": "drama",
+ "genre_label": "drama",
+ "series": {"name": "", "episode": 1, "previous_last_frame": null},
+ "format": {"aspect_ratio": "9:16", "duration_s": 60, "resolution": "768P", "language": "en", "fps": 24},
+ "video_model": "minimax/h3-max/reference-to-video",
+ "budget_usd": 5,
+ "trailer": {"video": "trailer.mp4", "prompt_file": "trailer.txt"},
+
+ "sheet": {
+  "type": "spine | heart | spike",
+  "hook": {"formula": "mid-crisis | forbidden-line | status-shock | wrong-image | clock | callback",
+           "image": "What frame 1 shows.", "line": "The first line, 8 words or fewer.", "text": "THE HOOK TEXT."},
+  "recap": "One line, 12 words or fewer, that states the stakes.",
+  "want": "", "obstacle": "", "twist": "", "choice": "", "cost": "", "payoff": "",
+  "cliffhanger": {"type": "unfinished-line | new-fact | loaded-look | impossible-choice | arrival", "last_frame": ""},
+  "loops": {"closed": [""], "opened": [""]}
+ },
+
+ "beats": [
+  {"id": "hook", "start": 0, "end": 4, "tension": 0.8, "change": ""},
+  {"id": "anchor", "start": 4, "end": 12, "tension": 0.4, "change": ""},
+  {"id": "pressure", "start": 12, "end": 24, "tension": 0.6, "change": ""},
+  {"id": "twist", "start": 24, "end": 36, "tension": 0.9, "change": ""},
+  {"id": "choice", "start": 36, "end": 47, "tension": 0.75, "change": ""},
+  {"id": "payoff", "start": 47, "end": 55, "tension": 0.45, "change": ""},
+  {"id": "cliff", "start": 55, "end": 60, "tension": 1.0, "change": ""}
+ ],
+
+ "look": {
+  "style": "One sentence: format, film look, people, depth of field.",
+  "lighting": "The key (direction and color), fill, rim, practicals; the same in every shot.",
+  "camera": "How the camera behaves: support, moves, heights, lens family.",
+  "grade": "Skin, shadows, highlights, contrast.",
+  "texture": "Grain, halation.",
+  "palette": ["#000000"],
+  "ambience": "The room sound under every take.",
+  "avoid": "What must never appear."
+ },
+
+ "cast": [
+  {"id": "hero", "name": "Name", "role": "hero", "age": 30,
+   "look": "hair, skin, eyes, build, height", "wardrobe": "garments and colors, one signature accessory",
+   "manner": "how they behave",
+   "voice": {"model": "elevenlabs/tts/eleven-v4", "voice": "Sarah", "stability": 0.35, "direction": "", "sample": "[tag] A line in their register."},
+   "refs": {"sheet": "hero_sheet", "voice": "hero_voice"}}
+ ],
+
+ "locations": [
+  {"id": "place", "name": "the place", "description": "", "blockout": "blockout/place.json",
+   "refs": {"main": "place_main"}}
+ ],
+
+ "props": [],
+
+ "assets": {
+  "hero_sheet": {"type": "image", "kind": "character_sheet", "of": "hero", "file": "assets/cast/hero_sheet.png",
+   "make": {"endpoint": "fal-ai/nano-banana-pro/edit", "files": {"image_urls": ["study/f_001.jpg"]},
+    "args": {"aspect_ratio": "16:9", "resolution": "2K", "prompt": "Character reference sheet of ... (see references/bible.md)"}}},
+  "place_main": {"type": "image", "kind": "location", "of": "place", "view": "toward the action", "file": "assets/locations/place_main.png",
+   "make": {"endpoint": "fal-ai/nano-banana-pro/edit", "files": {"image_urls": ["blockout/place/main_empty.png", "study/f_002.jpg"]},
+    "args": {"aspect_ratio": "9:16", "resolution": "2K", "prompt": "Image 1 is a gray clay blockout of a set. Render it as ... in the look of image 2. Keep the exact camera, perspective and layout. No people."}}},
+  "hero_voice": {"type": "audio", "kind": "voice", "of": "hero", "file": "assets/voices/hero.mp3", "seconds": 4.5,
+   "make": {"endpoint": "elevenlabs/tts/eleven-v4", "args": {"voice": "Sarah", "stability": 0.35, "text": "[tag] A line in their register."}}}
+ },
+
+ "sequences": [
+  {"id": "s01", "beats": ["hook", "anchor"], "location": "place", "time": "night", "slot": [0, 12], "duration": 13,
+   "start_image": null, "end_image": null, "must": [],
+   "refs": ["hero_sheet", "place_main", "hero_voice"],
+   "shots": [
+    {"t": [0, 2.5], "frame": "ECU", "angle": "eye level", "lens": "85 mm", "move": "slow push-in", "who": ["hero"],
+     "action": "What we see, as behavior.", "lines": [{"who": "hero", "text": "Eight words or fewer.", "how": "how it is said"}],
+     "overlay": "THE HOOK TEXT."},
+    {"t": [2.5, 13.0], "frame": "MCU", "angle": "eye level", "lens": "50 mm", "move": "static", "who": ["hero"],
+     "action": "", "lines": [], "silence": "", "sound": ""}
+   ]}
+ ],
+
+ "music": {
+  "model": "elevenlabs/music/v2.5",
+  "styles": ["genre and instruments", "mood", "great production quality"],
+  "avoid": ["vocals", "choir"],
+  "cues": [
+   {"id": "A", "from": 0.5, "to": 22, "intent": ""},
+   {"id": "B", "from": 26, "to": 52, "intent": ""},
+   {"id": "C", "from": 55.5, "to": 60, "intent": ""}
+  ]
+ }
+}

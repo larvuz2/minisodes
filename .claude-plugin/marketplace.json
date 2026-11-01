@@ -1,0 +1,14 @@
+{
+  "name": "minisodes",
+  "description": "Minisode (1-2 minute micro-drama) making skills for coding agents",
+  "owner": { "name": "larvuz2", "url": "https://github.com/larvuz2" },
+  "plugins": [
+    {
+      "name": "minisodes",
+      "source": "./",
+      "description": "Concept and trailer to a finished vertical minisode: story, plan, references, H3 sequences, review, edit, score and mix, delivered with captions",
+      "category": "creative",
+      "tags": ["micro-drama", "vertical-video", "fal", "minimax-h3", "editing"]
+    }
+  ]
+}

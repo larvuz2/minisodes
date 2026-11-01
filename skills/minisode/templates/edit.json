@@ -1,0 +1,84 @@
+{
+ "_note": "The cut, for scripts/assemble.py and scripts/pace.py (references/edit.md). Times in clips are take seconds; overlays, music, sfx and markers are timeline seconds. j/l are J- and L-cuts in seconds; punch 1.1 is a 10 % push-in at focus [x, y].",
+ "plan": "episode.json",
+ "size": "1080x1920",
+ "fps": 30,
+ "clips": [
+  {
+   "take": "takes/s01_t1.mp4",
+   "in": 0.1,
+   "out": 2.2,
+   "beat": "hook",
+   "shot": "s01.1"
+  },
+  {
+   "take": "takes/s01_t1.mp4",
+   "in": 2.2,
+   "out": 6.0,
+   "beat": "anchor",
+   "shot": "s01.2",
+   "j": 0.3
+  },
+  {
+   "take": "takes/s02_t2.mp4",
+   "in": 0.4,
+   "out": 3.0,
+   "beat": "pressure",
+   "shot": "s02.1",
+   "l": 0.4,
+   "punch": 1.1,
+   "focus": [
+    0.5,
+    0.35
+   ]
+  }
+ ],
+ "overlays": [
+  {
+   "text": "THE HOOK\nTEXT.",
+   "start": 0.25,
+   "end": 2.5,
+   "style": "hook"
+  }
+ ],
+ "captions": true,
+ "music": [
+  {
+   "cue": "A",
+   "file": "music/cue_A.mp3",
+   "at": 0.4,
+   "in": 0,
+   "out": 20,
+   "gain_db": -18,
+   "fade_in": 0.05,
+   "fade_out": 1.0
+  }
+ ],
+ "sfx": [
+  {
+   "file": "sfx/hit.mp3",
+   "at": 6.0,
+   "gain_db": -9,
+   "kind": "hit"
+  }
+ ],
+ "markers": [
+  {
+   "t": 6.0,
+   "type": "twist",
+   "note": ""
+  },
+  {
+   "t": 10.0,
+   "type": "silence",
+   "until": 12.0,
+   "note": ""
+  }
+ ],
+ "mix": {
+  "loudness": -14,
+  "true_peak": -1.5,
+  "duck_db": 9,
+  "dialogue_gain_db": 0
+ }
+}

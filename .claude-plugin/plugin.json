@@ -1,0 +1,21 @@
+{
+  "name": "minisodes",
+  "displayName": "Minisodes",
+  "version": "1.0.0",
+  "description": "Make a finished 1-2 minute vertical micro-drama from a concept and a trailer: story to the micro-drama format, second-by-second shot plan, gray-box locations, character sheets, location plates and voices on fal, MiniMax H3 Max sequences under a hard budget, take review, a measured pacing edit, score, mix and captions.",
+  "author": {
+    "name": "Phatty Acid",
+    "url": "https://github.com/larvuz2"
+  },
+  "homepage": "https://github.com/larvuz2/minisodes",
+  "repository": "https://github.com/larvuz2/minisodes",
+  "keywords": [
+    "micro-drama",
+    "vertical-video",
+    "fal",
+    "minimax-h3",
+    "elevenlabs",
+    "video-editing",
+    "storytelling"
+  ]
+}
