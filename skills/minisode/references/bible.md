@@ -6,11 +6,22 @@ under `assets`, each with a `make` recipe, and built with `make.py` (priced, log
 
 ## Study the trailer first
 
+First decide the medium from the trailer: photoreal live action, or a stylized animated look (cartoon,
+claymation, anime...). Write it into `look.style`; every sheet, plate, keyframe and shot prompt follows it.
+
 `study_video.py trailer.mp4 -o study/` gives frames every 0.5 s, a timed contact sheet, the palette and the cuts.
 Write down, from named frames: each character's clearest frame (face, then full body), each place's widest frame,
 the light (key direction, color temperature, practicals), the lens feel (wide and close or long and compressed),
 the grade (warm or cool, contrast, blacks) and the texture (grain, halation). These become `look`, `cast` and
 `locations`. When the trailer and the concept disagree, the trailer wins: the user approved it.
+
+## Without a trailer
+
+When the user skipped the trailer, the concept, the genre and the director's notes are the brief. Decide the
+medium and the look first and write them into `look` as precisely as a trailer would show them. Then build every
+sheet from its description with `fal-ai/nano-banana-pro` (text to image) instead of `/edit`. The first approved
+sheet becomes the style reference: later sheets and plates use `/edit` with it in `image_urls`, so the cast and
+the places share one look.
 
 ## Character sheets (`kind: character_sheet`)
 
@@ -23,7 +34,9 @@ person (or `fal-ai/nano-banana-pro` from the description alone if the person is 
   and the five expressions the episode needs (anger, shock, a smile, tears, a smirk...). These close-ups are what
   keep the face stable in close shots, so they are big.
 - **Bottom of the right half:** close-ups of the outfit fabric, the signature accessory, the shoes.
-- Plain light-gray background, even soft studio light, photoreal skin, no text, labels or borders.
+- Plain light-gray background, even soft studio light, no text, labels or borders. In the trailer's medium:
+  photoreal skin for live action; for an animated trailer, the same render style, materials, proportions and
+  color as the trailer (a cartoon burrito stays a cartoon burrito, never a photo of food).
 - 2K resolution. One sheet per character; regenerate until the face matches the trailer frame, side by side.
 
 If a take shows sheet artifacts (split screens, grids, a gray studio background bleeding in), give that
@@ -34,7 +47,8 @@ instead of the sheet, and say in the prompt which is which.
 
 Built from the gray blockout (`blockout.md`), so the geography is fixed before the look: `nano-banana-pro/edit`
 with the empty clay render of a camera (`<cam>_empty.png`) as image 1 and a trailer frame of the place as image 2:
-"Render image 1 as a finished photoreal set in the look of image 2... Keep the exact camera, perspective, layout
+"Render image 1 as a finished set in the look of image 2 (photoreal, or the trailer's animated style)... Keep the
+exact camera, perspective, layout
 and the size and position of every piece of furniture. No people." One plate per main camera direction (usually
 two: toward the action and the reverse). Build the second plate from the first (`@first_plate`) so materials
 match. These plates are the H3 image references for the room ("Image 3 is the reception, view toward Nora's

@@ -102,7 +102,7 @@ for word in re.findall(r"'(\w+)'", stages):
 for word in re.findall(r"'(\w+)'", kinds):
     if word not in re.search(r'`kind` in ([^;]*);', brief).group(1):
         errors.append(f'preview kind {word} is not in the app brief')
-for action in ('note', 'upload-urls', 'preview', 'deliver', 'fail', 'episodeId'):
+for action in ('note', 'upload-urls', 'preview', 'deliver', 'fail', 'checkpoint', 'episodeId'):
     if action not in deliver or action not in brief:
         errors.append(f'delivery action or field {action} missing on one side of the contract')
 

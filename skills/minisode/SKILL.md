@@ -69,6 +69,16 @@ Every fal call goes through `fal_run.py`, `make.py`, `shoot.py` or `review_take.
 spend. Scripts need Python 3.9+, ffmpeg with libass, `pip install fal-client` with `FAL_KEY`, and for the
 blockout Node 18+ with playwright and Chromium (`npm i three@0.160.0` to serve Three.js locally).
 
+## Modes
+
+- **Autopilot** (with or without a trailer): one run does steps 1 to 9. Without a trailer, step 1 becomes
+  "decide the look from the concept" (`references/bible.md`, without a trailer).
+- **Guided**: the user approves the cast, then the story, then the locations, and each approval is a new run.
+  A run ends at its checkpoint (`shotforge_deliver.py checkpoint <stage> --items|--summary --state-dir .`), and
+  the next one starts with `shotforge_deliver.py restore`. Comments come back as `feedback` per item: rebuild only
+  what was commented. Whatever the user approved is locked for the rest of the episode. The ShotForge saved prompt
+  (`prompts/shotforge-routine.md` at the repository root) spells out each phase.
+
 ## Hard rules
 
 - **Story before pixels.** Nothing is generated until the episode sheet is complete and `plan_check.py` shows
