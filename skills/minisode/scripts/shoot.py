@@ -135,7 +135,7 @@ def shoot_one(ep, base, seq_id, n, opts):
         return uploaded[f]
 
     args = ADAPTERS[model](b, up)
-    for f, secs in media.items():
+    for f, secs in list(media.items()):
         if f in uploaded:
             media[uploaded[f]] = secs
     result, files, cost = fal_run.run(model, args, os.path.join(base, 'takes'), name, media=media)
