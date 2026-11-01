@@ -29,6 +29,9 @@ LILAC_ASS = '&H00FFA5C4'      # #C4A5FF in ASS BGR
 INK_ASS = '&H00140F12'
 
 
+NL = '\\N'  # ASS line break
+
+
 def probe(path):
     out = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type:format=duration', '-of',
                           'json', path], capture_output=True, text=True, check=True).stdout
@@ -171,7 +174,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     ev = []
     for o in edit.get('overlays', []):
         style = {'hook': 'Hook', 'title': 'Title'}.get(o.get('style', 'hook'), 'Hook')
-        ev.append(f'Dialogue: 1,{ts(o["start"])},{ts(o["end"])},{style},,0,0,0,,{o["text"].upper().replace(chr(10), "\\N")}')
+        ev.append(f'Dialogue: 1,{ts(o["start"])},{ts(o["end"])},{style},,0,0,0,,{o["text"].upper().replace(chr(10), NL)}')
     if edit.get('captions', True) and words:
         chunks, cur = [], []
         for w in words:
