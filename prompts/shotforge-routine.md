@@ -282,8 +282,9 @@ phase "locations" (guided):
      - the two main camera directions (toward the action, and the reverse);
      - a close-up of the materials: surfaces, fabric, wood, metal, light fixtures.
   2. Revision: for each item id in feedback, rebuild that view with the comment applied, keeping the blockout
-     layout. When the comment changes the whole room (colors, materials, era, style), rebuild every view of that
-     place so they still match. Apply comment, if any, to every place.
+     layout. A key "place:<place name>" is a note on a whole place: apply it to every view of that place. When a
+     comment changes the whole room (colors, materials, era, style), rebuild every view of that place so they
+     still match. Apply comment, if any, to every place.
   3. Write checkpoint/locations.json with one item per view:
        {"id": "<asset id>", "group": "<place name>", "label": "<view>", "image": "<plate file>",
         "description": "<2 or 3 lines: interior design, colors, materials, textures, light>"}
