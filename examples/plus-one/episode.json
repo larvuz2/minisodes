@@ -1,0 +1,219 @@
+{
+ "id": "plus-one",
+ "title": "Plus One",
+ "logline": "At the wedding of the friend who stole her fiancé, Nora's hired date turns out to be the bride's jilted ex, and he did not pick Nora by chance.",
+ "genre": "romcom",
+ "genre_label": "romantic comedy",
+ "series": {"name": "Plus One", "episode": 1, "previous_last_frame": null},
+ "format": {"aspect_ratio": "9:16", "duration_s": 60, "resolution": "768P", "language": "en", "fps": 24},
+ "video_model": "minimax/h3-max/reference-to-video",
+ "budget_usd": 9,
+ "trailer": {"video": "trailer.mp4", "prompt_file": "trailer.txt"},
+
+ "sheet": {
+  "type": "spike",
+  "hook": {
+   "formula": "forbidden-line",
+   "image": "Extreme close-up: Nora's eyes over a champagne flute; a man's lips at her ear.",
+   "line": "Smile. Your ex is watching.",
+   "text": "SHE HIRED HIM FOR ONE NIGHT."
+  },
+  "recap": "She married my fiancé. Tonight, you're mine.",
+  "want": "Nora wants to look untouchable at Celeste's wedding.",
+  "obstacle": "Her hired date knows the bride.",
+  "twist": "Theo was supposed to marry Celeste: the prop has his own war.",
+  "choice": "Nora kisses Theo in front of Celeste.",
+  "cost": "She gives up the safe, polite plan and lets a stranger into her revenge.",
+  "payoff": "The ex was watching, and Celeste is the one who breaks first.",
+  "cliffhanger": {"type": "new-fact", "last_frame": "Extreme close-up of Nora, string-light bokeh, holding Theo's gaze after: \"I didn't answer your ad by accident.\""},
+  "loops": {"closed": ["Will Nora survive the wedding with her dignity?"], "opened": ["Why did Theo choose Nora?"]}
+ },
+
+ "beats": [
+  {"id": "hook", "start": 0, "end": 4, "tension": 0.8, "change": "forbidden line in the first second, hook text"},
+  {"id": "anchor", "start": 4, "end": 12, "tension": 0.4, "change": "recap line states the stakes, comic bet"},
+  {"id": "pressure", "start": 12, "end": 24, "tension": 0.6, "change": "the bride arrives and knows the date"},
+  {"id": "twist", "start": 24, "end": 36, "tension": 0.9, "change": "new fact: he was going to marry her"},
+  {"id": "choice", "start": 36, "end": 47, "tension": 0.75, "change": "Nora acts: the kiss"},
+  {"id": "payoff", "start": 47, "end": 55, "tension": 0.45, "change": "Celeste walks away, Nora laughs"},
+  {"id": "cliff", "start": 55, "end": 60, "tension": 1.0, "change": "new fact, held look, hard cut"}
+ ],
+
+ "look": {
+  "style": "Cinematic 35 mm film look of a premium streaming romantic comedy, photoreal people, natural skin texture, shallow depth of field with creamy bokeh",
+  "lighting": "warm tungsten string lights and table candles as the key, cool deep-blue night through the glass walls as rim and fill, soft falloff on faces, the same light direction in every shot",
+  "camera": "intimate, on sticks with a slight breathing handheld drift, motivated slow push-ins, eye level or slightly low, 35 mm, 50 mm and 85 mm spherical lenses",
+  "grade": "warm skin tones, teal-blue shadows, soft highlight roll-off, gentle contrast, no crushed blacks",
+  "texture": "fine 35 mm grain, slight halation around the string lights",
+  "palette": ["#f2c38b", "#1d2a44", "#2f6b4f", "#e9e3d6", "#c9a0ff"],
+  "ambience": "wedding reception murmur, glasses clinking, distant laughter, soft room tone of a glass conservatory",
+  "avoid": "slow motion, dutch angles, lens flares across faces, sharp faces in the background crowd, anyone looking into the lens"
+ },
+
+ "cast": [
+  {"id": "nora", "name": "Nora", "role": "hero", "age": 29,
+   "look": "copper-red chin-length bob with a blunt fringe, freckles, green eyes, fair skin, slim, 1.68 m",
+   "wardrobe": "emerald-green satin slip dress, thin gold chain necklace with a small key pendant, small gold hoop earrings",
+   "manner": "sharp, guarded, funny when cornered; smiles with her mouth before her eyes",
+   "voice": {"model": "elevenlabs/tts/eleven-v4", "voice": "Sarah", "stability": 0.35,
+             "direction": "dry, quick, low; drops to a whisper when she is scared",
+             "sample": "[dryly] Oh, I'm fine. I'm always fine. [sighs] That's the problem."},
+   "refs": {"sheet": "nora_sheet", "voice": "nora_voice"}},
+  {"id": "theo", "name": "Theo", "role": "hired date", "age": 32,
+   "look": "tall, warm brown skin, short dark curly hair, short neat beard, dark brown eyes, 1.86 m",
+   "wardrobe": "charcoal suit, white shirt with an open collar, no tie, silver signet ring on the right hand",
+   "manner": "unbothered, amused, always half a step ahead; goes very still when he means it",
+   "voice": {"model": "elevenlabs/tts/eleven-v4", "voice": "Chris", "stability": 0.4,
+             "direction": "warm, relaxed, close to the mic, a smile in the voice",
+             "sample": "[amused] Relax. Nobody here knows a thing about us. Yet."},
+   "refs": {"sheet": "theo_sheet", "voice": "theo_voice"}},
+  {"id": "celeste", "name": "Celeste", "role": "the bride", "age": 30,
+   "look": "platinum-blonde low chignon, pale skin, sharp cheekbones, pale blue eyes, 1.72 m",
+   "wardrobe": "ivory wedding gown with long lace sleeves, pearl drop earrings, short veil pinned at the back of the chignon",
+   "manner": "bright and gracious in public, brittle underneath; her smile cracks at the corners",
+   "voice": {"model": "elevenlabs/tts/eleven-v4", "voice": "Alice", "stability": 0.35,
+             "direction": "polished British, too sweet, venom when she lowers her voice",
+             "sample": "[sweetly] Darling, you look wonderful. [lower] Truly. Who would have thought."},
+   "refs": {"sheet": "celeste_sheet", "voice": "celeste_voice"}}
+ ],
+
+ "locations": [
+  {"id": "glasshouse", "name": "the glasshouse wedding reception",
+   "description": "a wedding reception at night inside a tall Victorian glass conservatory: round tables with white linen, candles and white peonies, warm string lights crossing overhead, a small dance floor and a long head table at the far end, dark garden beyond the glass walls",
+   "blockout": "blockout/glasshouse.json",
+   "refs": {"reverse": "glasshouse_reverse", "wide": "glasshouse_wide"}}
+ ],
+
+ "props": [],
+
+ "assets": {
+  "nora_sheet": {"type": "image", "kind": "character_sheet", "of": "nora", "file": "assets/cast/nora_sheet.png",
+   "make": {"endpoint": "fal-ai/nano-banana-pro/edit", "files": {"image_urls": ["study/f_009.jpg"]},
+    "args": {"aspect_ratio": "16:9", "resolution": "2K", "prompt": "Character reference sheet of the woman with the copper-red bob in the reference frame, same person, same art direction and light quality as the frame. Plain light-gray studio background, even soft studio light, photoreal, true skin texture. LEFT HALF: four full-body views of her at the same scale, feet visible, relaxed A-pose: front, three-quarter, side profile, back. RIGHT HALF, LARGE: a 3x2 grid of big head-and-shoulders close-ups of the same face, sharp eyes, each tile big: neutral, warm smile, anger, shock, sadness with wet eyes, sly smirk. Along the bottom of the right half: close-ups of the emerald satin slip dress fabric, the thin gold chain with the small key pendant, the gold hoop earrings and her shoes. Copper-red chin-length bob with a blunt fringe, freckles, green eyes. No text, no labels, no logos, no borders between tiles."}}},
+  "theo_sheet": {"type": "image", "kind": "character_sheet", "of": "theo", "file": "assets/cast/theo_sheet.png",
+   "make": {"endpoint": "fal-ai/nano-banana-pro/edit", "files": {"image_urls": ["study/f_011.jpg"]},
+    "args": {"aspect_ratio": "16:9", "resolution": "2K", "prompt": "Character reference sheet of the man in the charcoal suit in the reference frame, same person, same art direction and light quality. Plain light-gray studio background, even soft studio light, photoreal, true skin texture. LEFT HALF: four full-body views at the same scale, feet visible, relaxed A-pose: front, three-quarter, side profile, back. RIGHT HALF, LARGE: a 3x2 grid of big head-and-shoulders close-ups of the same face, sharp eyes: neutral, easy grin, cold stillness, surprise, tenderness, sly half-smile. Along the bottom of the right half: close-ups of the charcoal suit fabric, the open white collar, the silver signet ring on his right hand and his shoes. Warm brown skin, short dark curly hair, short neat beard. No text, no labels, no logos, no borders between tiles."}}},
+  "celeste_sheet": {"type": "image", "kind": "character_sheet", "of": "celeste", "file": "assets/cast/celeste_sheet.png",
+   "make": {"endpoint": "fal-ai/nano-banana-pro/edit", "files": {"image_urls": ["study/f_017.jpg"]},
+    "args": {"aspect_ratio": "16:9", "resolution": "2K", "prompt": "Character reference sheet of the bride in the reference frame, same person, same art direction and light quality. Plain light-gray studio background, even soft studio light, photoreal, true skin texture. LEFT HALF: four full-body views at the same scale, the full gown visible: front, three-quarter, side profile, back with the veil. RIGHT HALF, LARGE: a 3x2 grid of big head-and-shoulders close-ups of the same face, sharp eyes: gracious public smile, smile cracking, fury held in, shock, hurt, icy calm. Along the bottom of the right half: close-ups of the lace sleeve, the pearl drop earrings, the veil pinned in the platinum chignon and the bouquet of white peonies. No text, no labels, no logos, no borders between tiles."}}},
+  "glasshouse_reverse": {"type": "image", "kind": "location", "of": "glasshouse", "view": "toward Nora's table", "file": "assets/locations/glasshouse_reverse.png",
+   "make": {"endpoint": "fal-ai/nano-banana-pro/edit", "files": {"image_urls": ["blockout/glasshouse/reverse_empty.png", "study/f_004.jpg"]},
+    "args": {"aspect_ratio": "9:16", "resolution": "2K", "prompt": "Image 1 is a gray clay blockout of a set. Render it as a finished photoreal film set in the look of image 2: a wedding reception at night inside a tall Victorian glass conservatory, round tables with white linen, candles and white peonies, warm tungsten string lights crossing overhead, deep-blue night garden beyond the glass. Keep the exact camera position, lens, perspective, layout, and the size and position of every table, chair and wall from image 1. No people. Cinematic 35 mm film look, warm practicals, teal-blue shadows."}}},
+  "glasshouse_wide": {"type": "image", "kind": "location", "of": "glasshouse", "view": "toward the dance floor", "file": "assets/locations/glasshouse_wide.png",
+   "make": {"endpoint": "fal-ai/nano-banana-pro/edit", "files": {"image_urls": ["blockout/glasshouse/wide_empty.png", "@glasshouse_reverse"]},
+    "args": {"aspect_ratio": "9:16", "resolution": "2K", "prompt": "Image 1 is a gray clay blockout of the same set seen from the other side. Render it as the same room as image 2, the same materials, linen, flowers, string lights and night outside the glass, now looking toward the small dance floor and the long head table. Keep the exact camera, perspective and layout of image 1. No people. Same light and grade as image 2."}}},
+  "kf_s01": {"type": "image", "kind": "keyframe", "file": "assets/keyframes/kf_s01.png",
+   "make": {"endpoint": "fal-ai/nano-banana-pro/edit", "files": {"image_urls": ["blockout/glasshouse/cu_nora.png", "@glasshouse_reverse", "@nora_sheet", "@theo_sheet"]},
+    "args": {"aspect_ratio": "9:16", "resolution": "2K", "prompt": "Film still, vertical 9:16. Image 1 is the shot layout from a gray blockout: keep its camera, lens and composition exactly. Replace the violet mannequin with Nora from image 3 and the teal mannequin with Theo from image 4, same faces and wardrobe. Extreme close-up on Nora's eyes over the rim of a champagne flute, Theo leaning in behind her shoulder, his mouth near her ear, slightly out of focus. Background and light from image 2, string lights as warm bokeh. Eyes in the upper third, nothing important in the bottom fifth."}}},
+  "nora_voice": {"type": "audio", "kind": "voice", "of": "nora", "file": "assets/voices/nora.mp3", "seconds": 4.5,
+   "make": {"endpoint": "elevenlabs/tts/eleven-v4", "args": {"voice": "Sarah", "stability": 0.35, "text": "[dryly] Oh, I'm fine. I'm always fine. [sighs] That's the problem."}}},
+  "theo_voice": {"type": "audio", "kind": "voice", "of": "theo", "file": "assets/voices/theo.mp3", "seconds": 4.5,
+   "make": {"endpoint": "elevenlabs/tts/eleven-v4", "args": {"voice": "Chris", "stability": 0.4, "text": "[amused] Relax. Nobody here knows a thing about us. Yet."}}},
+  "celeste_voice": {"type": "audio", "kind": "voice", "of": "celeste", "file": "assets/voices/celeste.mp3", "seconds": 4.5,
+   "make": {"endpoint": "elevenlabs/tts/eleven-v4", "args": {"voice": "Alice", "stability": 0.35, "text": "[sweetly] Darling, you look wonderful. [lower] Truly. Who would have thought."}}},
+  "cam_push_s03": {"type": "video", "kind": "camera_move", "file": "blockout/glasshouse/push_nora_move.mp4", "seconds": 4,
+   "note": "last resort for s03 shot 4 if the push-in does not happen from the words alone"}
+ },
+
+ "sequences": [
+  {"id": "s01", "beats": ["hook", "anchor"], "location": "glasshouse", "time": "night", "slot": [0, 12], "duration": 13,
+   "start_image": "kf_s01",
+   "refs": ["nora_sheet", "theo_sheet", "glasshouse_reverse", "nora_voice", "theo_voice"],
+   "shots": [
+    {"t": [0, 2.2], "frame": "ECU", "angle": "eye level", "lens": "85 mm", "move": "slow push-in", "who": ["nora", "theo"],
+     "action": "Nora's eyes over the rim of a champagne flute, fixed on something across the room. Theo leans in behind her shoulder, soft focus, his mouth near her ear.",
+     "lines": [{"who": "theo", "text": "Smile. Your ex is watching.", "how": "a low amused whisper"}],
+     "overlay": "SHE HIRED HIM FOR ONE NIGHT."},
+    {"t": [2.2, 4.0], "frame": "INSERT", "angle": "her point of view", "lens": "85 mm", "move": "static", "who": [],
+     "action": "Across the room, deep out of focus through string-light bokeh, a bride in white laughs on the dance floor with a man in a tuxedo.",
+     "sound": "a burst of distant laughter"},
+    {"t": [4.0, 8.0], "frame": "MCU-2S", "angle": "eye level", "lens": "50 mm", "move": "static, slight drift", "who": ["nora", "theo"],
+     "action": "Nora turns to Theo with a bright fake smile that never reaches her eyes, and speaks through her teeth.",
+     "lines": [{"who": "nora", "text": "She married my fiancé. Tonight, you're mine.", "how": "through a frozen smile, low and fast"}]},
+    {"t": [8.0, 13.0], "frame": "CU", "angle": "slightly low", "lens": "85 mm", "move": "static", "who": ["theo"],
+     "action": "Theo, unbothered, lifts his glass an inch toward the dance floor and gives her a lazy half-smile, then takes a sip.",
+     "lines": [{"who": "theo", "text": "Two hundred says she cries first.", "how": "relaxed, teasing"}]}
+   ]},
+
+  {"id": "s02", "beats": ["pressure"], "location": "glasshouse", "time": "night", "slot": [12, 24], "duration": 13,
+   "refs": ["nora_sheet", "theo_sheet", "celeste_sheet", "glasshouse_wide", "nora_voice", "theo_voice", "celeste_voice"],
+   "shots": [
+    {"t": [0, 3.0], "frame": "WS", "angle": "low, from table height", "lens": "35 mm", "move": "static", "who": ["celeste"],
+     "action": "Celeste in her wedding gown glides toward camera between the round tables, arms open, the string lights behind her.",
+     "lines": [{"who": "celeste", "text": "Nora! You actually came.", "how": "bright, too sweet, a little too loud"}]},
+    {"t": [3.0, 5.5], "frame": "MCU", "angle": "eye level", "lens": "50 mm", "move": "static", "who": ["nora"],
+     "action": "Nora rises halfway from her chair, champagne still in hand, her smile locked in place.",
+     "lines": [{"who": "nora", "text": "Wouldn't miss it.", "how": "flat, polite"}]},
+    {"t": [5.5, 8.5], "frame": "MCU", "angle": "eye level", "lens": "85 mm", "move": "slow push-in", "who": ["celeste"],
+     "action": "Celeste's eyes slide past Nora to the man beside her. Her smile cracks at the corners; she goes pale.",
+     "lines": [{"who": "celeste", "text": "Theo?", "how": "barely a breath"}]},
+    {"t": [8.5, 10.5], "frame": "CU", "angle": "eye level", "lens": "85 mm", "move": "static", "who": ["theo"],
+     "action": "Theo, seated, calm, raises his glass to her.",
+     "lines": [{"who": "theo", "text": "Hi, Celeste.", "how": "easy, warm, deliberately casual"}]},
+    {"t": [10.5, 13.0], "frame": "ECU", "angle": "eye level", "lens": "85 mm", "move": "static", "who": ["nora"],
+     "action": "Nora's eyes dart from Celeste to Theo and back. She does not breathe.",
+     "silence": "a held beat, only the room murmur"}
+   ]},
+
+  {"id": "s03", "beats": ["twist"], "location": "glasshouse", "time": "night", "slot": [24, 36], "duration": 13,
+   "refs": ["nora_sheet", "theo_sheet", "celeste_sheet", "glasshouse_reverse", "nora_voice", "theo_voice", "celeste_voice"],
+   "shots": [
+    {"t": [0, 3.5], "frame": "OTS", "angle": "over Nora's shoulder", "lens": "50 mm", "move": "static", "who": ["celeste", "theo", "nora"],
+     "action": "Celeste bends close to Theo, smile still on for the guests, voice dropped so only they can hear.",
+     "lines": [{"who": "celeste", "text": "You swore you'd never come back.", "how": "low, venomous, smiling"}]},
+    {"t": [3.5, 6.0], "frame": "CU", "angle": "eye level", "lens": "85 mm", "move": "static", "who": ["nora"],
+     "action": "Nora turns her head slowly to Theo, stunned.",
+     "lines": [{"who": "nora", "text": "You know her?", "how": "a stunned whisper"}]},
+    {"t": [6.0, 9.5], "frame": "CU", "angle": "slightly low", "lens": "85 mm", "move": "static", "who": ["theo"],
+     "action": "Theo keeps his eyes on Celeste. For the first time the smile is gone.",
+     "lines": [{"who": "theo", "text": "I was supposed to marry her.", "how": "quiet, almost tender"}]},
+    {"t": [9.5, 13.0], "frame": "MCU", "angle": "eye level", "lens": "85 mm", "move": "slow push-in", "who": ["nora"],
+     "action": "Slow push-in on Nora as it lands: her lips part, then the corner of her mouth lifts. Celeste is a pale blur at the edge of frame.",
+     "silence": "no one speaks, the murmur of the room drops away"}
+   ]},
+
+  {"id": "s04", "beats": ["choice"], "location": "glasshouse", "time": "night", "slot": [36, 48], "duration": 13,
+   "refs": ["nora_sheet", "theo_sheet", "celeste_sheet", "glasshouse_reverse", "nora_voice", "theo_voice"],
+   "shots": [
+    {"t": [0, 2.5], "frame": "MCU", "angle": "eye level", "lens": "50 mm", "move": "static", "who": ["nora"],
+     "action": "Decision on Nora's face. She sets her champagne flute down on the linen, hard enough to slosh.",
+     "sound": "glass hits the table"},
+    {"t": [2.5, 7.0], "frame": "MS", "angle": "slightly low", "lens": "35 mm", "move": "slow arc of 30 degrees around them", "who": ["nora", "theo", "celeste"],
+     "action": "Nora stands, takes Theo's face in both hands and kisses him, slow and certain. Celeste stands soft-focus in the left foreground, frozen."},
+    {"t": [7.0, 9.5], "frame": "CU", "angle": "eye level", "lens": "85 mm", "move": "static", "who": ["celeste"],
+     "action": "Celeste watches the kiss. The champagne in her glass trembles; she swallows and lifts her chin.",
+     "silence": "only her breath"},
+    {"t": [9.5, 13.0], "frame": "MCU-2S", "angle": "eye level", "lens": "50 mm", "move": "static", "who": ["nora", "theo"],
+     "action": "Nora pulls back an inch, breathless, eyes sliding sideways toward Celeste. Theo, still close, answers without looking away from Nora.",
+     "lines": [{"who": "nora", "text": "Did she cry?", "how": "breathless, barely moving her lips"},
+               {"who": "theo", "text": "Not yet.", "how": "a murmur"}]}
+   ]},
+
+  {"id": "s05", "beats": ["payoff", "cliff"], "location": "glasshouse", "time": "night", "slot": [48, 60], "duration": 13,
+   "refs": ["nora_sheet", "theo_sheet", "celeste_sheet", "glasshouse_wide", "nora_voice", "theo_voice"],
+   "shots": [
+    {"t": [0, 3.0], "frame": "WS", "angle": "eye level", "lens": "35 mm", "move": "static", "who": ["celeste"],
+     "action": "Celeste turns and walks away stiffly toward the dance floor, the veil trailing, guests parting for her."},
+    {"t": [3.0, 6.0], "frame": "MCU-2S", "angle": "eye level", "lens": "50 mm", "move": "static", "who": ["nora", "theo"],
+     "action": "Nora exhales a disbelieving laugh, still holding Theo's lapel.",
+     "lines": [{"who": "nora", "text": "Then you're not done.", "how": "a grin, daring him"}]},
+    {"t": [6.0, 9.5], "frame": "CU", "angle": "eye level", "lens": "85 mm", "move": "very slow push-in", "who": ["theo"],
+     "action": "Theo's smile fades. He holds her gaze, very still.",
+     "lines": [{"who": "theo", "text": "I didn't answer your ad by accident.", "how": "quiet, serious"}]},
+    {"t": [9.5, 13.0], "frame": "ECU", "angle": "eye level", "lens": "85 mm", "move": "static", "who": ["nora"],
+     "action": "Nora's face, the laugh gone, eyes searching his. String-light bokeh. She does not blink.",
+     "silence": "a held look, room tone only"}
+   ]}
+ ],
+
+ "music": {
+  "model": "elevenlabs/music/v2.5",
+  "styles": ["romantic comedy score", "playful pizzicato strings", "muted felt piano", "light brushed percussion", "warm, intimate, small ensemble", "great production quality"],
+  "avoid": ["vocals", "choir", "EDM drop", "big trailer drums"],
+  "cues": [
+   {"id": "A", "from": 0.4, "to": 22.0, "intent": "sly playful pizzicato pulse under the hook and the bet, tiptoes when the bride arrives"},
+   {"id": "B", "from": 26.5, "to": 52.0, "intent": "low tension under the twist, blooms into a warm string swell on the kiss at about 38 s, pulls back to a single piano line"},
+   {"id": "C", "from": 55.5, "to": 60.0, "intent": "one low sustained cello note with a soft riser, cut dead on the last frame"}
+  ]
+ }
+}

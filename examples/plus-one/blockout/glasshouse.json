@@ -1,0 +1,427 @@
+{
+ "name": "glasshouse",
+ "aspect_ratio": "9:16",
+ "background": "#2b3140",
+ "room": {
+  "w": 14,
+  "d": 10,
+  "h": 5,
+  "glass": true,
+  "walls": [
+   "north",
+   "south",
+   "east",
+   "west"
+  ]
+ },
+ "sun": {
+  "dir": [
+   0.3,
+   -1,
+   0.5
+  ],
+  "intensity": 1.6
+ },
+ "practicals": [
+  {
+   "pos": [
+    -2,
+    3.2,
+    2.4
+   ],
+   "intensity": 4,
+   "range": 6
+  },
+  {
+   "pos": [
+    0,
+    3.4,
+    -2.5
+   ],
+   "intensity": 5,
+   "range": 8
+  }
+ ],
+ "objects": [
+  {
+   "id": "dance_floor",
+   "type": "plane",
+   "pos": [
+    0,
+    0,
+    -2.4
+   ],
+   "size": [
+    5,
+    0,
+    4
+   ],
+   "label": "dance floor"
+  },
+  {
+   "id": "head_table",
+   "type": "table",
+   "pos": [
+    0,
+    0,
+    -4.3
+   ],
+   "size": [
+    5.2,
+    0.75,
+    0.9
+   ],
+   "label": "head table"
+  },
+  {
+   "id": "t1",
+   "type": "round_table",
+   "cloth": true,
+   "pos": [
+    -2.0,
+    0,
+    2.0
+   ],
+   "size": [
+    1.6,
+    0.75
+   ],
+   "label": "Nora's table"
+  },
+  {
+   "id": "t1_flowers",
+   "type": "flowers",
+   "pos": [
+    -2.0,
+    0,
+    2.0
+   ],
+   "size": [
+    0.3
+   ],
+   "elev": 0.75,
+   "label": false
+  },
+  {
+   "id": "t2",
+   "type": "round_table",
+   "cloth": true,
+   "pos": [
+    3.0,
+    0,
+    1.6
+   ],
+   "size": [
+    1.6,
+    0.75
+   ],
+   "label": "table 2"
+  },
+  {
+   "id": "t3",
+   "type": "round_table",
+   "cloth": true,
+   "pos": [
+    -4.6,
+    0,
+    -0.6
+   ],
+   "size": [
+    1.6,
+    0.75
+   ],
+   "label": "table 3"
+  },
+  {
+   "id": "t4",
+   "type": "round_table",
+   "cloth": true,
+   "pos": [
+    4.6,
+    0,
+    -1.2
+   ],
+   "size": [
+    1.6,
+    0.75
+   ],
+   "label": "table 4"
+  },
+  {
+   "id": "t5",
+   "type": "round_table",
+   "cloth": true,
+   "pos": [
+    0.8,
+    0,
+    3.6
+   ],
+   "size": [
+    1.6,
+    0.75
+   ],
+   "label": "table 5"
+  },
+  {
+   "id": "chair_nora",
+   "type": "chair",
+   "pos": [
+    -2.3,
+    0,
+    2.75
+   ],
+   "rot": 155,
+   "label": false
+  },
+  {
+   "id": "chair_theo",
+   "type": "chair",
+   "pos": [
+    -1.55,
+    0,
+    2.95
+   ],
+   "rot": 165,
+   "label": false
+  },
+  {
+   "id": "chair_3",
+   "type": "chair",
+   "pos": [
+    -2.85,
+    0,
+    1.6
+   ],
+   "rot": 60,
+   "label": false
+  },
+  {
+   "id": "chair_4",
+   "type": "chair",
+   "pos": [
+    -1.2,
+    0,
+    1.45
+   ],
+   "rot": -60,
+   "label": false
+  },
+  {
+   "id": "lights_a",
+   "type": "string_lights",
+   "from": [
+    -7,
+    4.2,
+    3.5
+   ],
+   "to": [
+    7,
+    4.2,
+    -3.5
+   ],
+   "sag": 0.6,
+   "bulbs": 40
+  },
+  {
+   "id": "lights_b",
+   "type": "string_lights",
+   "from": [
+    -7,
+    4.2,
+    -3.5
+   ],
+   "to": [
+    7,
+    4.2,
+    3.5
+   ],
+   "sag": 0.6,
+   "bulbs": 40
+  },
+  {
+   "id": "lights_c",
+   "type": "string_lights",
+   "from": [
+    -7,
+    4.0,
+    0
+   ],
+   "to": [
+    7,
+    4.0,
+    0
+   ],
+   "sag": 0.4,
+   "bulbs": 36
+  },
+  {
+   "id": "plant_ne",
+   "type": "plant",
+   "pos": [
+    6.2,
+    0,
+    -4.2
+   ],
+   "size": [
+    0.6,
+    1.6
+   ],
+   "label": false
+  },
+  {
+   "id": "plant_nw",
+   "type": "plant",
+   "pos": [
+    -6.2,
+    0,
+    -4.2
+   ],
+   "size": [
+    0.6,
+    1.6
+   ],
+   "label": false
+  }
+ ],
+ "actors": [
+  {
+   "id": "nora",
+   "name": "Nora",
+   "pos": [
+    -2.3,
+    0,
+    2.75
+   ],
+   "rot": 155,
+   "pose": "sit",
+   "height": 1.68,
+   "color": "#8b5cf6"
+  },
+  {
+   "id": "theo",
+   "name": "Theo",
+   "pos": [
+    -1.55,
+    0,
+    2.95
+   ],
+   "rot": 165,
+   "pose": "sit",
+   "height": 1.86,
+   "color": "#14b8a6"
+  },
+  {
+   "id": "celeste",
+   "name": "Celeste",
+   "pos": [
+    -1.25,
+    0,
+    1.55
+   ],
+   "rot": -30,
+   "pose": "stand",
+   "height": 1.72,
+   "color": "#f59e0b"
+  }
+ ],
+ "cameras": [
+  {
+   "id": "reverse",
+   "pos": [
+    -0.2,
+    1.55,
+    -0.6
+   ],
+   "look": [
+    -2.0,
+    1.0,
+    2.8
+   ],
+   "lens": 35
+  },
+  {
+   "id": "wide",
+   "pos": [
+    -2.6,
+    1.6,
+    4.6
+   ],
+   "look": [
+    0,
+    1.3,
+    -3.0
+   ],
+   "lens": 28
+  },
+  {
+   "id": "cu_nora",
+   "pos": [
+    -1.93,
+    1.2,
+    1.9
+   ],
+   "look": [
+    -2.3,
+    1.2,
+    2.75
+   ],
+   "lens": 85
+  },
+  {
+   "id": "cu_theo",
+   "pos": [
+    -1.25,
+    1.3,
+    2.1
+   ],
+   "look": [
+    -1.55,
+    1.3,
+    2.95
+   ],
+   "lens": 85
+  },
+  {
+   "id": "ots_nora",
+   "pos": [
+    -2.85,
+    1.45,
+    3.7
+   ],
+   "look": [
+    -1.4,
+    1.35,
+    2.0
+   ],
+   "lens": 35
+  },
+  {
+   "id": "push_nora",
+   "pos": [
+    -1.6,
+    1.25,
+    1.2
+   ],
+   "look": [
+    -2.3,
+    1.2,
+    2.75
+   ],
+   "lens": 85,
+   "move": {
+    "pos": [
+     -1.95,
+     1.21,
+     1.95
+    ],
+    "look": [
+     -2.3,
+     1.2,
+     2.75
+    ],
+    "seconds": 4,
+    "actors": true
+   }
+  }
+ ]
+}
