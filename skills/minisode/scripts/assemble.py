@@ -171,7 +171,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     ev = []
     for o in edit.get('overlays', []):
         style = {'hook': 'Hook', 'title': 'Title'}.get(o.get('style', 'hook'), 'Hook')
-        ev.append(f'Dialogue: 1,{ts(o["start"])},{ts(o["end"])},{style},,0,0,0,,{o["text"].upper().replace(chr(10), "\\N")}')
+        otext = o["text"].upper().replace(chr(10), "\\N")
+        ev.append(f'Dialogue: 1,{ts(o["start"])},{ts(o["end"])},{style},,0,0,0,,{otext}')
     if edit.get('captions', True) and words:
         chunks, cur = [], []
         for w in words:
