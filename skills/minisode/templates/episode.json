@@ -7,6 +7,8 @@
  "genre_label": "drama",
  "series": {"name": "", "episode": 1, "previous_last_frame": null},
  "format": {"aspect_ratio": "9:16", "duration_s": 60, "resolution": "768P", "language": "en", "fps": 24},
+ "preset": "social",
+ "_preset": "social (the micro-drama loop) or cinematic (conversations, one essence, coverage A/B/C, tone lock, look frame: references/cinematic.md, examples/handover/)",
  "video_model": "minimax/h3-max/reference-to-video",
  "budget_usd": 5,
  "trailer": {"video": "trailer.mp4", "prompt_file": "trailer.txt"},
@@ -39,7 +41,22 @@
   "texture": "Grain, halation.",
   "palette": ["#000000"],
   "ambience": "The room sound under every take.",
-  "avoid": "What must never appear."
+  "avoid": "What must never appear.",
+  "lock": "Cinematic preset (optional in social): 15-40 words of light, color, contrast, grain and mood, repeated word for word in every prompt.",
+  "tone_refs": [{"film": "A film", "year": 2000, "dp": "Its cinematographer", "take": "what to take from it, for light and mood only"}],
+  "reference": "look_frame"
+ },
+
+ "_cinematography": "Cinematic preset only; delete for social.",
+ "cinematography": {
+  "essence": "empty-space | high-angle | silence | frames-within-frames | symmetry | long-lens | low-angle | backs-and-doorways",
+  "statement": "Why this essence serves this story, in one sentence.",
+  "rules": ["Two to four concrete rules that make the essence visible."],
+  "coverage": {
+   "A": {"side": "center", "frame": "WS", "angle": "eye level", "lens": "35 mm", "move": "locked off", "desc": "where it stands and what it sees"},
+   "B": {"side": "left", "frame": "MCU", "angle": "eye level", "lens": "50 mm", "move": "locked off", "desc": "over one shoulder onto the person on the right"},
+   "C": {"side": "right", "frame": "MCU", "angle": "eye level", "lens": "50 mm", "move": "locked off", "desc": "over the other shoulder onto the person on the left"}
+  }
  },
 
  "cast": [
@@ -58,6 +75,9 @@
  "props": [],
 
  "assets": {
+  "look_frame": {"type": "image", "kind": "look", "file": "assets/look/look_frame.png",
+   "make": {"endpoint": "openai/gpt-image-2.5/flare/text-to-image",
+    "args": {"image_size": "portrait_16_9", "quality": "high", "prompt": "Photoreal film still of the place in the episode's light: <look.lock>. No people, no text."}}},
   "hero_sheet": {"type": "image", "kind": "character_sheet", "of": "hero", "file": "assets/cast/hero_sheet.png",
    "make": {"endpoint": "fal-ai/nano-banana-pro/edit", "files": {"image_urls": ["study/f_001.jpg"]},
     "args": {"aspect_ratio": "16:9", "resolution": "2K", "prompt": "Character reference sheet of ... (see references/bible.md)"}}},

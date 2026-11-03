@@ -44,7 +44,11 @@ H3_PER_SECOND = {'480P': 0.05, '768P': 0.08, '1080P': 0.16}
 H3_FREE_REF_TOKENS = 4096
 H3_PER_1K_REF_TOKENS = 0.02
 REF_TOKENS = {'image': 1024, 'audio_s': 80, 'video_s': 512}   # image and audio from fal's docs; video is a guess
-PER_IMAGE = {'fal-ai/nano-banana-pro': 0.15, 'fal-ai/nano-banana-pro/edit': 0.15}
+PER_IMAGE = {'fal-ai/nano-banana-pro': 0.15, 'fal-ai/nano-banana-pro/edit': 0.15,
+             # GPT Image is billed by tokens; 0.25 USD is a cautious estimate for one high-quality image
+             'openai/gpt-image-2.5/flare/text-to-image': 0.25, 'openai/gpt-image-2.5/flare/edit': 0.25,
+             'openai/gpt-image-2.5/sunburst/text-to-image': 0.25, 'openai/gpt-image-2.5/sunburst/edit': 0.25,
+             'openai/gpt-image-2': 0.25, 'openai/gpt-image-2/edit': 0.25}
 PER_1K_CHARS = {'elevenlabs/tts/eleven-v4': 0.08, 'elevenlabs/tts/eleven-v4-turbo': 0.05,
                 'fal-ai/elevenlabs/tts/eleven-v3': 0.10, 'fal-ai/elevenlabs/text-to-dialogue/eleven-v3': 0.10}
 PER_MINUTE = {'elevenlabs/music/v2.5': 0.60, 'fal-ai/elevenlabs/speech-to-text/scribe-v2': 0.008,
@@ -92,7 +96,7 @@ def estimate(endpoint, args, media=None, price=None):
         extra = max(0, tokens - H3_FREE_REF_TOKENS) / 1000 * H3_PER_1K_REF_TOKENS
         return round(secs * H3_PER_SECOND.get(res, 0.08) + extra, 4)
     if endpoint in PER_IMAGE:
-        mult = 2 if args.get('resolution') == '4K' else 1
+        mult = 2 if args.get('resolution') == '4K' or args.get('quality') in ('xhigh', 'max') else 1
         return PER_IMAGE[endpoint] * int(args.get('num_images', 1)) * mult
     if endpoint in PER_1K_CHARS:
         text = args.get('text') or ' '.join(b.get('text', '') for b in args.get('inputs') or [])

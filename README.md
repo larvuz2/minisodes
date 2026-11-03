@@ -33,6 +33,15 @@ concept + genre ──► trailer (H3 text-to-video, 15 s) ──► the user wa
 Every fal call goes through one ledger with a price table: a call that would pass the budget is refused before it
 runs, and the report lists the spend per endpoint.
 
+## Two presets
+
+- **Social** (default): the micro-drama pressure loop below, built to stop the scroll.
+- **Cinematic**: a short film scene that holds a look. Two people talking in one place, or walking toward the
+  camera; one camera essence per episode (empty space, high angles, silence...); three fixed cameras, A center,
+  B left, C right, used by every shot so the generations stitch; rationed angles; a tone lock repeated word for
+  word in every prompt, 1-3 tone films, and a look frame attached to every image and video generation
+  (`skills/minisode/references/cinematic.md`, example [`examples/handover/`](examples/handover/)).
+
 ## What makes the episodes hold
 
 - **The format is the contract.** A face in frame 1, hook text by 0.6 s, the first line by 2 s, the stakes by 5 s,
@@ -41,8 +50,8 @@ runs, and the report lists the spend per endpoint.
   `skills/minisode/references/format.md`). `plan_check.py` refuses a plan that breaks it.
 - **References are bound, not hoped for.** Character sheets (full-body turnaround on the left, big face
   close-ups on the right, outfit and accessory details), location plates rendered from the gray blockout so the
-  geography never moves, keyframes for the hook, a voice sample per character. The prompt says what each tag is:
-  "Image 1 is Nora's character sheet", "Audio 1 is Nora's voice".
+  geography never moves, keyframes for the hook, a voice sample per character. Every reference has an @ tag and
+  the prompt says what it is: "@Image 1 is Nora's character sheet", "Nora (voice: @Audio 1) says".
 - **Directed prompts.** Every sequence prompt opens with "No music." and lists its shots with time codes: size,
   angle, lens, move, behavior, the exact line, who says it, how, and in which voice. The look and the light are
   the same in every prompt.
@@ -52,12 +61,16 @@ runs, and the report lists the spend per endpoint.
 
 ![Pace map of the example cut](examples/plus-one/pace.svg)
 
-## The example
+## The examples
 
-[`examples/plus-one/`](examples/plus-one/) is a complete plan for a 60 s romantic comedy: the episode sheet, 7
-beats, 3 characters, 1 location with its blockout, 9 references with their recipes, 5 sequences of 13 s with 21
-shots, 3 music cues, and the edit list. It passes every check of `plan_check.py` and `pace.py`, and its budget
-table says 768P fits 9 USD with a 36 % retake reserve.
+[`examples/plus-one/`](examples/plus-one/) is a complete social plan for a 60 s romantic comedy: the episode
+sheet, 7 beats, 3 characters, 1 location with its blockout, 9 references with their recipes, 5 sequences of 13 s
+with 21 shots, 3 music cues, and the edit list. It passes every check of `plan_check.py` and `pace.py`, and its
+budget table says 768P fits 9 USD with a 36 % retake reserve.
+
+[`examples/handover/`](examples/handover/) is a complete cinematic plan for a 60 s drama: two people in an empty
+apartment, essence empty space, cameras A, B and C, a tone lock, three tone films and a look frame, 5 sequences
+with 15 shots.
 
 ## Install
 
@@ -83,7 +96,8 @@ with Playwright and Chromium (`npm i three@0.160.0` to serve Three.js locally, e
 
 ### From ShotForge
 
-The Minisodes tab of ShotForge (the Phatty Acid app) offers three modes:
+The Minisodes tab of ShotForge (the Phatty Acid app) offers two styles (Social hook, Cinematic) and three
+modes:
 - **Trailer, then autopilot**: H3 films a 15 s trailer; you watch it, then Claude makes the episode.
 - **Straight to autopilot**: no trailer; Claude starts at once.
 - **Guided**: Claude stops for your approval of the cast (sheets and voices), the story (editable beat by beat) and
@@ -104,7 +118,7 @@ Routine setup and saved prompt: [`prompts/shotforge-routine.md`](prompts/shotfor
 | H3 Max reference-to-video, per second | 0.05 | 0.08 | 0.16 |
 | 60 s episode with references, score and a 25 % retake reserve | about 6 | about 8.3 | about 15.5 |
 
-Sheets, plates and keyframes are 0.15 each (Nano Banana Pro), voices about 0.005 each (Eleven v4), the score 0.60
+Sheets, plates and keyframes are 0.15 each (Nano Banana Pro), a GPT Image 2.5 look frame about 0.25, voices about 0.005 each (Eleven v4), the score 0.60
 per minute (ElevenLabs Music) or 0.10 per cue (Lyria 3.5), transcripts about 0.01 per take. The ShotForge default
 budget of 5 USD runs a 60 s episode in lean mode (480P, Lyria score, one plate, no retake reserve to speak of);
 about 9 USD buys 768P with retakes.
@@ -114,15 +128,16 @@ about 9 USD buys 768P with retakes.
 ```text
 skills/minisode/
   SKILL.md                 workflow, hard rules, reference routing
-  references/              format, story, bible, blockout, shots, shoot-and-review, edit, sound
+  references/              format, story, bible, blockout, shots, shoot-and-review, edit, sound, cinematic
   scripts/                 fal_run.py (budget ledger), prompt.py, plan_check.py, make.py, shoot.py,
                            review_take.py, study_video.py, pace.py, assemble.py, report.py,
                            shotforge_deliver.py, blockout.mjs
   templates/               episode.json, layout.json, edit.json
-examples/plus-one/         a complete 60 s plan, its blockout and its edit list
-prompts/                   the ShotForge routine prompt and the Minisodes tab brief
+examples/plus-one/         a complete 60 s social plan, its blockout and its edit list
+examples/handover/         a complete 60 s cinematic plan and its blockout
+prompts/                   the ShotForge routine setup, the run steps, and the Minisodes tab brief
 docs/                      the micro-drama format guide (PDF)
-tests/check_repo.py        static checks and the example's plan, prompt and pace checks
+tests/check_repo.py        static checks and both examples' plan, prompt, pace and estimate checks
 ```
 
 ## Credits

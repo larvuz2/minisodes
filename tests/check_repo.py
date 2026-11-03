@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Checks for the repository: links, hygiene, script syntax and help, JSON, the delivery contract, and the
-example episode run through the plan, prompt and pace checks. Nothing here calls fal.
+"""Checks for the repository: links, hygiene, script syntax and help, JSON, the delivery contract, and both
+example episodes (social and cinematic) run through the plan, prompt, pace and estimate checks. Nothing here
+calls fal.
 
 Usage:
   python3 tests/check_repo.py
@@ -15,7 +16,6 @@ import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPTS = os.path.join(ROOT, 'skills', 'minisode', 'scripts')
-EXAMPLE = os.path.join(ROOT, 'examples', 'plus-one')
 errors = []
 
 
@@ -113,19 +113,47 @@ est = fal_run.estimate('minimax/h3-max/reference-to-video', {'duration': 13, 're
 if abs(est - 1.08) > 1e-6:
     errors.append(f'H3 768P 13 s should estimate 1.08 USD, got {est}')
 
-# the example passes its own checks
-for args in (['plan_check.py', 'episode.json'], ['prompt.py', 'episode.json']):
-    r = run([sys.executable, os.path.join(SCRIPTS, args[0]), *args[1:]], cwd=EXAMPLE)
-    if r.returncode:
-        errors.append(f'example: {args[0]} failed:\n{(r.stdout + r.stderr)[-1500:]}')
-with tempfile.TemporaryDirectory() as tmp:
-    for args in (['--plan', 'episode.json'], ['edit.json']):
-        r = run([sys.executable, os.path.join(SCRIPTS, 'pace.py'), *args, '-o', tmp], cwd=EXAMPLE)
+# both examples pass their own checks
+for name in ('plus-one', 'handover'):
+    ex = os.path.join(ROOT, 'examples', name)
+    for args in (['plan_check.py', 'episode.json'], ['prompt.py', 'episode.json'],
+                 ['make.py', 'episode.json', '--estimate']):
+        r = run([sys.executable, os.path.join(SCRIPTS, args[0]), *args[1:]], cwd=ex)
         if r.returncode:
-            errors.append(f'example: pace.py {" ".join(args)} failed:\n{r.stdout[-1500:]}')
-    r = run([sys.executable, os.path.join(SCRIPTS, 'shoot.py'), 'episode.json', 's01', '--dry-run'], cwd=EXAMPLE)
-    if r.returncode or 'No music.' not in r.stdout:
-        errors.append(f'example: shoot.py --dry-run failed:\n{(r.stdout + r.stderr)[-1500:]}')
+            errors.append(f'{name}: {args[0]} failed:\n{(r.stdout + r.stderr)[-1500:]}')
+    r = run([sys.executable, os.path.join(SCRIPTS, 'plan_check.py'), 'episode.json'], cwd=ex)
+    if ' 0 warnings' not in r.stdout:
+        errors.append(f'{name}: plan_check.py warns:\n{r.stdout[-1500:]}')
+    with tempfile.TemporaryDirectory() as tmp:
+        for args in (['--plan', 'episode.json'], ['edit.json']):
+            if not os.path.exists(os.path.join(ex, args[-1])):
+                continue
+            r = run([sys.executable, os.path.join(SCRIPTS, 'pace.py'), *args, '-o', tmp], cwd=ex)
+            if r.returncode:
+                errors.append(f'{name}: pace.py {" ".join(args)} failed:\n{r.stdout[-1500:]}')
+    r = run([sys.executable, os.path.join(SCRIPTS, 'shoot.py'), 'episode.json', 's01', '--dry-run'], cwd=ex)
+    if r.returncode or 'No music.' not in r.stdout or '@Image 1' not in r.stdout:
+        errors.append(f'{name}: shoot.py --dry-run failed or has no @ tags:\n{(r.stdout + r.stderr)[-1500:]}')
+
+# the cinematic example: the tone lock in every prompt, the look frame in every sequence and image recipe
+ex = os.path.join(ROOT, 'examples', 'handover')
+import prompt as P  # noqa: E402
+import make  # noqa: E402
+ep, base = P.load(os.path.join(ex, 'episode.json'))
+lock = ep['look']['lock']
+for s in ep['sequences']:
+    b = P.build(ep, s['id'], base)
+    if lock not in b['prompt'] or 'CINEMATOGRAPHY' not in b['prompt'] or 'CAMERA A (center)' not in b['prompt'] \
+            and s['id'] == 's01':
+        errors.append(f'handover {s["id"]}: prompt lacks the tone lock, the cinematography block or camera A')
+    tag = b['tags'].get(ep['look']['reference'])
+    if not tag or f'Grade every shot against {tag}' not in b['prompt']:
+        errors.append(f'handover {s["id"]}: the look frame is not attached and tagged')
+for aid, x in ep['assets'].items():
+    if x['type'] == 'image' and aid != ep['look']['reference']:
+        mk = make.with_look(ep, aid, x)
+        if '@' + ep['look']['reference'] not in mk['files']['image_urls'] or not mk['endpoint'].endswith('/edit'):
+            errors.append(f'handover {aid}: the look frame is not attached to the image recipe')
 
 print('\n'.join(errors) or f'ok ({total / 1_000_000:.1f} MB)')
 sys.exit(1 if errors else 0)

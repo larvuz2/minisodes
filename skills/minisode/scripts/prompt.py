@@ -3,9 +3,11 @@
 
 The plan (episode.json) names every reference by asset id. This script turns a sequence into what the video
 model needs: an ordered list of image, audio and video references, and a prompt whose REFERENCES block binds
-each one ("Image 1 is Nora's character sheet", "Audio 1 is Nora's voice"), then the look, then the shots second
-by second, then the sound. "No music" is the first line of every prompt and is repeated in the sound block:
-the score is added in the edit.
+each one with an @ tag ("@Image 1 is Nora's character sheet", "@Audio 1 is Nora's voice"), then the look (with
+the tone lock repeated word for word in every prompt), the cinematography (essence and coverage cameras, when the
+plan has them), the shots second by second, and the sound. "No music" is the first line of every prompt and is
+repeated in the sound block: the score is added in the edit. When the plan names a look reference image
+(look.reference), it is attached to every sequence, so every generation is graded against the same frame.
 
 Usage:
   python3 prompt.py episode.json              # every sequence: prompt, references, warnings
@@ -27,6 +29,12 @@ FRAMES = {'ECU': 'extreme close-up', 'CU': 'close-up', 'MCU': 'medium close-up',
           'MCU-2S': 'medium close two-shot'}
 LANGS = {'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German', 'it': 'Italian', 'pt': 'Portuguese',
          'ja': 'Japanese', 'ko': 'Korean', 'zh': 'Mandarin Chinese'}
+# how each video model wants its references named in the prompt; the @ marks the tag, the words match the docs
+TAG_STYLES = {'minimax/h3-max/reference-to-video': '@{Kind} {n}'}
+DEFAULT_TAG = '@{Kind} {n}'
+SIDES = {'center': 'center', 'left': 'left side', 'right': 'right side'}
+CINEMATIC_AVOID = ('crash zooms, whip pans, shaky handheld, fast cutting, slow motion, characters looking into the '
+                   'lens, busy background action')
 SAFE_VERTICAL = ('Vertical 9:16 frame for phones: faces and key action sit in the middle band, eyes in the upper '
                  'third, nothing important in the top 12% or the bottom 20% of the frame, or along the right edge.')
 
@@ -58,33 +66,42 @@ def owner_name(ep, oid):
     return oid, None
 
 
-def describe(ep, aid, asset, n):
-    """One REFERENCES line for an asset, by its kind."""
+def tag_for(ep, kind, n):
+    style = TAG_STYLES.get(ep.get('video_model', ''), DEFAULT_TAG)
+    return style.format(Kind=kind.capitalize(), kind=kind, n=n)
+
+
+def describe(ep, aid, asset, tag):
+    """One REFERENCES line for an asset, by its kind. tag is the asset's @ tag, e.g. "@Image 2"."""
     if asset.get('bind'):
-        return asset['bind'].replace('{n}', str(n))
+        return asset['bind'].replace('{tag}', tag).replace('{n}', tag.split()[-1])
     name, _ = owner_name(ep, asset.get('of', ''))
     kind = asset.get('kind', '')
-    t = asset['type'].capitalize()
+    t = tag
+    if kind == 'look':
+        return (f'{t} is the look reference frame: every shot matches its light (direction, softness, color '
+                f'temperature), palette, contrast, lens character and grain. Take nothing else from it: not its '
+                f'people, objects, place or composition.')
     if kind == 'character_sheet':
-        return (f'{t} {n} is {name}\'s character sheet (full body on the left, face close-ups on the right): keep '
+        return (f'{t} is {name}\'s character sheet (full body on the left, face close-ups on the right): keep '
                 f'{name}\'s face, hair, body, wardrobe and accessories exactly as shown.')
     if kind == 'face':
-        return f'{t} {n} is {name}\'s face up close: match identity, skin, eyes, hair and expression range.'
+        return f'{t} is {name}\'s face up close: match identity, skin, eyes, hair and expression range.'
     if kind == 'outfit':
-        return f'{t} {n} shows {name}\'s outfit and accessories up close: same garments, colors and details.'
+        return f'{t} shows {name}\'s outfit and accessories up close: same garments, colors and details.'
     if kind == 'location':
         view = f' (view: {asset["view"]})' if asset.get('view') else ''
-        return f'{t} {n} is {name}{view}: keep its layout, furniture, materials, colors and light.'
+        return f'{t} is {name}{view}: keep its layout, furniture, materials, colors and light.'
     if kind == 'prop':
-        return f'{t} {n} is the {name}: keep its shape, color, size and material.'
+        return f'{t} is the {name}: keep its shape, color, size and material.'
     if kind == 'voice':
-        return f'{t} {n} is {name}\'s voice: {name} speaks only in this voice (timbre, accent, rhythm).'
+        return f'{t} is {name}\'s voice: {name} speaks only in this voice (timbre, accent, rhythm).'
     if kind == 'camera_move':
-        return (f'{t} {n} shows only the camera move: copy its path, speed and framing; ignore its gray clay look '
+        return (f'{t} shows only the camera move: copy its path, speed and framing; ignore its gray clay look '
                 f'and mannequins.')
     if kind == 'motion':
-        return f'{t} {n} shows {asset.get("label", "the movement")}: copy the movement and timing, not the look.'
-    return f'{t} {n} is {asset.get("label") or name}.'
+        return f'{t} shows {asset.get("label", "the movement")}: copy the movement and timing, not the look.'
+    return f'{t} is {asset.get("label") or name}.'
 
 
 def fmt_t(x):
@@ -136,12 +153,19 @@ def build(ep, seq_id, base='.'):
             warn.append(f'unknown asset {aid}')
             continue
         refs[a['type']].append(aid)
+    # the look reference rides along with every generation, after the sequence's own images
+    look_ref = look.get('reference')
+    if look_ref:
+        if look_ref not in assets:
+            warn.append(f'look.reference {look_ref} is not an asset')
+        elif look_ref not in refs['image']:
+            refs['image'].append(look_ref)
     tags = {}
     lines = []
     for kind in ('image', 'video', 'audio'):
         for i, aid in enumerate(refs[kind], 1):
-            tags[aid] = f'{kind.capitalize()} {i}'
-            lines.append(describe(ep, aid, assets[aid], i))
+            tags[aid] = tag_for(ep, kind, i)
+            lines.append(describe(ep, aid, assets[aid], tags[aid]))
 
     # who has which reference, so names can carry their tag on first mention
     person_tags, voice_tag = {}, {}
@@ -153,12 +177,18 @@ def build(ep, seq_id, base='.'):
             elif a.get('kind') == 'voice':
                 voice_tag[a['of']] = tag
 
+    cine = ep.get('cinematography') or {}
+    coverage = cine.get('coverage') or {}
     shots_txt = []
     speakers = set()
     for i, sh in enumerate(seq.get('shots', [])):
         t0, t1 = sh['t']
-        frame = FRAMES.get(sh.get('frame', '').upper(), sh.get('frame', ''))
-        camera = ', '.join(x for x in (frame.upper(), sh.get('angle'), sh.get('lens'), sh.get('move')) if x)
+        cam = coverage.get(sh.get('camera', ''), {})
+        frame = FRAMES.get((sh.get('frame') or cam.get('frame', '')).upper(), sh.get('frame') or cam.get('frame', ''))
+        setup = f'CAMERA {sh["camera"]} ({SIDES.get(cam.get("side"), cam.get("side", ""))})'.replace(' ()', '') \
+            if sh.get('camera') else ''
+        camera = ', '.join(x for x in (setup, frame.upper(), sh.get('angle') or cam.get('angle'),
+                                       sh.get('lens') or cam.get('lens'), sh.get('move') or cam.get('move')) if x)
         cut = '' if i == 0 else (sh.get('transition') or 'Hard cut') + '. '
         body = [sh.get('action', '').strip()]
         for ln in sh.get('lines', []):
@@ -181,16 +211,40 @@ def build(ep, seq_id, base='.'):
     aspect = fmt.get('aspect_ratio', '9:16')
     duration = float(seq.get('duration', 10))
     n_shots = len(seq.get('shots', []))
+    preset = ep.get('preset', 'social')
+    kind_of = 'short film scene' if preset == 'cinematic' else 'micro-drama'
     head = ['No music. No subtitles, captions or on-screen text.',
-            f'{aspect} {ep.get("genre_label") or ep.get("genre", "drama")} micro-drama, {fmt_t(duration)} seconds, '
+            f'{aspect} {ep.get("genre_label") or ep.get("genre", "drama")} {kind_of}, {fmt_t(duration)} seconds, '
             f'{seq.get("place") or owner_name(ep, seq.get("location", ""))[0]}, {seq.get("time", "")}'.rstrip(', ')
             + f', {n_shots} shot{"s" if n_shots != 1 else ""} cut together like a finished scene.']
     look_bits = [look.get('style'), 'Lighting: ' + (seq.get('light') or look.get('lighting', '')),
                  'Camera: ' + look.get('camera', ''), 'Grade: ' + look.get('grade', ''),
                  'Texture: ' + look.get('texture', '')]
     look_txt = ' '.join(b.rstrip('.') + '.' for b in look_bits if b and not b.endswith(': '))
+    if look.get('lock'):
+        # the same words in every prompt of the episode keep light and tone identical across generations
+        look_txt = f'TONE LOCK, identical in every shot: {look["lock"].rstrip(".")}. ' + look_txt
+    if look.get('tone_refs'):
+        refs_txt = '; '.join(f'{r["film"]}' + (f' ({", ".join(str(x) for x in (r.get("year"), r.get("dp")) if x)})'
+                                                 if r.get('year') or r.get('dp') else '') + f': {r.get("take", "")}'
+                             for r in look['tone_refs'])
+        look_txt += f' Tone references, for light and mood only: {refs_txt.rstrip(".")}.'
+    if look_ref in tags:
+        look_txt += f' Grade every shot against {tags[look_ref]}.'
     if aspect == '9:16':
         look_txt += ' ' + SAFE_VERTICAL
+    cine_txt = ''
+    if cine:
+        bits = []
+        if cine.get('essence'):
+            bits.append(f'Essence: {cine["essence"].replace("-", " ")}' + (f'. {cine["statement"]}' if cine.get('statement') else ''))
+        if cine.get('rules'):
+            bits.append('Rules: ' + '. '.join(r.rstrip('.') for r in cine['rules']))
+        if coverage:
+            bits.append('Coverage, the same camera positions in every sequence: ' + ' '.join(
+                f'Camera {k} ({SIDES.get(v.get("side"), v.get("side", ""))}): {v.get("desc", "").rstrip(".")}.'
+                for k, v in coverage.items()))
+        cine_txt = 'CINEMATOGRAPHY\n' + '\n'.join(b.rstrip('.') + '.' for b in bits)
     ambience = seq.get('ambience') or look.get('ambience') or 'natural room tone'
     if speakers:
         sound = (f'Native audio with lip-synced {lang} dialogue: only the lines written above, each spoken once, '
@@ -198,12 +252,13 @@ def build(ep, seq_id, base='.'):
                  'No music, no score, no soundtrack, no singing, no humming.')
     else:
         sound = f'Native audio, no dialogue. Ambience: {ambience}. No music, no score, no soundtrack.'
-    avoid = ', '.join(x for x in [look.get('avoid'), 'text, subtitles, logos, watermarks',
-                                   'extra people talking', 'faces or hands that morph'] if x)
+    avoid = ', '.join(x for x in [look.get('avoid'), CINEMATIC_AVOID if preset == 'cinematic' else '',
+                                   'text, subtitles, logos, watermarks', 'extra people talking',
+                                   'faces or hands that morph'] if x)
     must = seq.get('must') or []              # fixes written after reviewing a take ("Theo's ring stays on his right hand")
     must_txt = 'MUST\n' + '\n'.join(f'- {m.rstrip(".")}.' for m in must) if must else ''
     prompt = '\n\n'.join(['\n'.join(head), 'REFERENCES\n' + '\n'.join(lines) if lines else '',
-                          'LOOK\n' + look_txt, 'SHOTS\n' + shots, must_txt, 'SOUND\n' + sound,
+                          'LOOK\n' + look_txt, cine_txt, 'SHOTS\n' + shots, must_txt, 'SOUND\n' + sound,
                           'AVOID\n' + avoid.capitalize() + '.'])
     prompt = re.sub(r'\n{3,}', '\n\n', prompt).strip()
 
@@ -233,8 +288,11 @@ def build(ep, seq_id, base='.'):
     for cid in in_shots:
         if cid not in person_tags:
             warn.append(f'{cast.get(cid, {}).get("name", cid)} is on screen but has no image reference')
-    if len(prompt) > 4500:
-        warn.append(f'prompt is {len(prompt)} characters; keep it under ~4500')
+    if len(prompt) > 5500:
+        warn.append(f'prompt is {len(prompt)} characters; keep it under ~5500')
+    for i, sh in enumerate(seq.get('shots', []), 1):
+        if sh.get('camera') and coverage and sh['camera'] not in coverage:
+            warn.append(f'shot {i} uses camera {sh["camera"]}, which is not in cinematography.coverage')
     if seq.get('shots') and abs(seq['shots'][-1]['t'][1] - duration) > 0.3:
         warn.append(f'shots end at {seq["shots"][-1]["t"][1]} s but the sequence lasts {duration} s')
 

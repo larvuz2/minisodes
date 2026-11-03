@@ -4,12 +4,16 @@
 Reads episode.json and reports errors (fix before shooting), warnings (decide), and a budget table that
 prices the whole episode at each resolution and says which one fits with a retake reserve.
 
-Checks, from the micro-drama format guide and the video model's limits:
+Checks, from the micro-drama format guide and the video model's limits (the numbers are the social preset's;
+"preset": "cinematic" relaxes the hook rules and adds the cinematography checks, see PRESETS):
   story   episode sheet complete; hook formula; recap <= 12 words; hook text <= 8 words; lines <= 8 words
   beats   cover 0..duration with no gap; hook ends by 5 s; twist starts between 35 % and 60 %; cliff <= 10 s;
           a new beat at least every 20 s; never two flat beats in a row; the cliff is the tension peak
   shots   contiguous; camera fully specified; dialogue <= 3 words per second; a face in the first frame;
           a cut at least every 6 s; wide shots under 30 % of a vertical episode
+  cine    (cinematic) an essence, coverage cameras A/B/C used by every shot, a tone lock, tone references, a look
+          reference image; special angles and signature shots rationed; no whip pans, crash zooms or handheld;
+          two people per shot at most; simple actions; average shot 3.5-8 s
   refs    <= 9 images, 3 audio, 3 video, 12 in total; audio and video 2-15 s each, 15 s per type
   budget  assets + shots + music at 480P / 768P / 1080P against budget_usd, with >= 25 % kept for retakes
 
@@ -34,6 +38,32 @@ CLIFFS = {'unfinished-line', 'new-fact', 'loaded-look', 'impossible-choice', 'ar
 WIDE = {'WS', 'EWS', 'MWS'}
 RESERVE = 0.25
 
+# Rules per preset. social: the micro-drama pressure loop. cinematic: a short film scene that holds, built on
+# conversations, one essence and fixed coverage (references/cinematic.md).
+PRESETS = {
+    'social': {'hook_required': True, 'recap_required': True, 'line_warn': 8, 'line_err': 12, 'hook_end': 5,
+               'cliff_max': 10, 'rehook': 20, 'shot_max': 6, 'first_face': True, 'talk_by': 2, 'locations': 2,
+               'flat_beats': True},
+    'cinematic': {'hook_required': False, 'recap_required': False, 'line_warn': 12, 'line_err': 18, 'hook_end': 8,
+                  'cliff_max': 12, 'rehook': 30, 'shot_max': 12, 'first_face': False, 'talk_by': None,
+                  'locations': 1, 'flat_beats': False},
+}
+# camera language the cinematic preset forbids: it breaks the stitch between generations and the calm of the look
+FORBIDDEN_MOVES = ('whip', 'crash', 'shaky', 'handheld', 'spin', 'orbit', '360', 'snap zoom', 'zoom in fast',
+                   'roll', 'drone', 'fpv')
+BUSY_ACTION = ('runs', 'running', 'fights', 'fighting', 'chase', 'jumps', 'explod', 'crash', 'falls', 'dances',
+               'throws', 'punch', 'sprint')
+PLAIN_ANGLES = ('eye level', 'eye-level', 'shoulder height', 'chest height', 'level', '')
+
+
+# essences: one per episode, the idea the camera keeps coming back to (references/cinematic.md)
+ESSENCES = {'empty-space', 'high-angle', 'silence', 'frames-within-frames', 'symmetry', 'long-lens', 'low-angle',
+            'backs-and-doorways'}
+
+
+def rules(ep):
+    return PRESETS.get(ep.get('preset', 'social'), PRESETS['social'])
+
 
 def words(s):
     return len(re.findall(r"[\w'’-]+", s or ''))
@@ -54,15 +84,19 @@ class Report:
 
 
 def check_story(ep, r):
+    R = rules(ep)
     sh = ep.get('sheet') or {}
-    need = ['hook', 'recap', 'want', 'obstacle', 'twist', 'choice', 'cost', 'payoff', 'cliffhanger', 'loops']
+    need = ['want', 'obstacle', 'twist', 'choice', 'cost', 'payoff', 'cliffhanger', 'loops']
+    need += ['hook'] if R['hook_required'] else []
+    need += ['recap'] if R['recap_required'] else []
     for k in need:
         if not sh.get(k):
             r.err('story', f'episode sheet is missing "{k}"')
     hook = sh.get('hook') or {}
-    for k in ('image', 'line', 'text'):
+    for k in (('image', 'line', 'text') if R['hook_required'] else ('image',)):
         if not hook.get(k):
-            r.err('story', f'hook needs an {k} (image + line + on-screen text)')
+            (r.err if R['hook_required'] else r.warn)('story', f'hook needs an {k}' + (
+                ' (image + line + on-screen text)' if R['hook_required'] else ' (the first picture that holds)'))
     if hook.get('formula') and hook['formula'] not in HOOKS:
         r.warn('story', f'hook formula "{hook["formula"]}" is not one of {", ".join(sorted(HOOKS))}')
     if words(hook.get('text')) > 8:
@@ -83,13 +117,14 @@ def check_story(ep, r):
         for shot in s.get('shots', []):
             for ln in shot.get('lines', []):
                 n = words(ln['text'])
-                if n > 12:
-                    r.err('story', f'{s["id"]}: "{ln["text"]}" has {n} words (8 max, cut it)')
-                elif n > 8:
-                    r.warn('story', f'{s["id"]}: "{ln["text"]}" has {n} words (8 max)')
+                if n > R['line_err']:
+                    r.err('story', f'{s["id"]}: "{ln["text"]}" has {n} words ({R["line_warn"]} max, cut it)')
+                elif n > R['line_warn']:
+                    r.warn('story', f'{s["id"]}: "{ln["text"]}" has {n} words ({R["line_warn"]} max)')
 
 
 def check_beats(ep, r):
+    R = rules(ep)
     dur = ep['format']['duration_s']
     beats = sorted(ep.get('beats', []), key=lambda b: b['start'])
     if not beats:
@@ -102,22 +137,23 @@ def check_beats(ep, r):
         t = b['end']
     if abs(t - dur) > 0.01:
         r.err('beats', f'beats end at {t} s, the episode lasts {dur} s')
-    if beats[0]['id'] != 'hook' or beats[0]['end'] > 5:
-        r.err('beats', 'the first beat is the hook and ends by 5 s')
+    if beats[0]['id'] != 'hook' or beats[0]['end'] > R['hook_end']:
+        r.err('beats', f'the first beat is the hook and ends by {R["hook_end"]} s')
     tw = next((b for b in beats if b['id'] == 'twist'), None)
     if not tw:
         r.err('beats', 'no twist beat (the midpoint re-hook)')
     elif not 0.35 * dur <= tw['start'] <= 0.6 * dur:
         r.warn('beats', f'twist starts at {tw["start"]} s; the midpoint re-hook belongs between '
                         f'{0.35 * dur:.0f} and {0.6 * dur:.0f} s')
-    if beats[-1]['id'] != 'cliff' or beats[-1]['end'] - beats[-1]['start'] > 10:
-        r.err('beats', 'the last beat is the cliffhanger, 10 s or shorter')
+    if beats[-1]['id'] != 'cliff' or beats[-1]['end'] - beats[-1]['start'] > R['cliff_max']:
+        r.err('beats', f'the last beat is the cliffhanger, {R["cliff_max"]} s or shorter')
     starts = [b['start'] for b in beats] + [dur]
     gap = max(b - a for a, b in zip(starts, starts[1:]))
-    (r.warn if gap > 20 else r.ok)('beats', f'longest stretch without a new beat: {gap:.0f} s (re-hook every 15-20 s)')
+    (r.warn if gap > R['rehook'] else r.ok)('beats', f'longest stretch without a new beat: {gap:.0f} s '
+                                                      f'(a new beat every {R["rehook"]} s at most)')
     ten = [b.get('tension', 0.5) for b in beats]
     for a, b, x, y in zip(beats, beats[1:], ten, ten[1:]):
-        if x < 0.5 and y < 0.5:
+        if R['flat_beats'] and x < 0.5 and y < 0.5:
             r.warn('beats', f'"{a["id"]}" and "{b["id"]}" are both quiet: never two flat beats in a row')
     if ten[-1] < max(ten):
         r.warn('beats', 'the cliffhanger is not the tension peak')
@@ -137,6 +173,7 @@ def timeline(ep):
 
 
 def check_shots(ep, base, r):
+    R = rules(ep)
     fmt = ep['format']
     dur = fmt['duration_s']
     slot_t = 0
@@ -160,7 +197,8 @@ def check_shots(ep, base, r):
             if abs(t0 - t) > 0.01:
                 r.err('shots', f'{sid} shot {i + 1}: starts at {t0} s, expected {t}')
             t = t1
-            miss = [k for k in ('frame', 'angle', 'lens', 'move', 'action') if not sh.get(k)]
+            cam = ((ep.get('cinematography') or {}).get('coverage') or {}).get(sh.get('camera'), {})
+            miss = [k for k in ('frame', 'angle', 'lens', 'move', 'action') if not (sh.get(k) or cam.get(k))]
             if miss:
                 r.warn('shots', f'{sid} shot {i + 1}: no {", ".join(miss)}')
             n = sum(words(ln['text']) for ln in sh.get('lines', []))
@@ -177,14 +215,14 @@ def check_shots(ep, base, r):
     tl = timeline(ep)
     if tl:
         first = tl[0]['shot']
-        if not first.get('who'):
+        if R['first_face'] and not first.get('who'):
             r.err('shots', 'no face in the first frame: the hook starts on a person or a threat')
         talk = [x for x in tl if x['shot'].get('lines') or x['shot'].get('overlay')]
-        if not talk or talk[0]['start'] > 2:
-            r.warn('shots', 'no line or hook text in the first 2 s')
+        if R['talk_by'] is not None and (not talk or talk[0]['start'] > R['talk_by']):
+            r.warn('shots', f'no line or hook text in the first {R["talk_by"]} s')
         longest = max(tl, key=lambda x: x['end'] - x['start'])
         L = longest['end'] - longest['start']
-        (r.warn if L > 6 else r.ok)('shots', f'longest planned shot {L:.1f} s ({longest["seq"]}); '
+        (r.warn if L > R['shot_max'] else r.ok)('shots', f'longest planned shot {L:.1f} s ({longest["seq"]}); '
                                               f'average {sum(x["end"] - x["start"] for x in tl) / len(tl):.1f} s')
         if fmt.get('aspect_ratio') == '9:16':
             wide = sum(x['end'] - x['start'] for x in tl if x['shot'].get('frame', '').upper() in WIDE)
@@ -200,8 +238,9 @@ def check_shots(ep, base, r):
     cast = {c['id']: c for c in ep.get('cast', [])}
     if len(cast) > 3:
         r.warn('story', f'{len(cast)} characters; the format holds 3')
-    if len(ep.get('locations', [])) > 2:
-        r.warn('story', f'{len(ep["locations"])} locations; the format holds 2')
+    if len(ep.get('locations', [])) > R['locations']:
+        r.warn('story', f'{len(ep["locations"])} locations; the {ep.get("preset", "social")} preset holds '
+                        f'{R["locations"]}')
     assets = ep.get('assets', {})
     for cid, c in cast.items():
         refs = c.get('refs', {})
@@ -209,6 +248,99 @@ def check_shots(ep, base, r):
             r.err('refs', f'{c["name"]} has no image reference')
         if not any(assets.get(x, {}).get('kind') == 'voice' for x in refs.values()):
             r.warn('refs', f'{c["name"]} has no voice reference')
+
+
+def check_cinematic(ep, r):
+    """The cinematic preset: one essence, fixed coverage, the same light in every prompt, restraint."""
+    if ep.get('preset') != 'cinematic':
+        return
+    cine = ep.get('cinematography') or {}
+    look = ep.get('look') or {}
+    assets = ep.get('assets', {})
+    dur = ep['format']['duration_s']
+    essence = cine.get('essence', '')
+    if not essence:
+        r.err('cine', 'no cinematography.essence; pick one idea for the camera (references/cinematic.md)')
+    elif essence not in ESSENCES:
+        r.warn('cine', f'essence "{essence}" is not in the catalog ({", ".join(sorted(ESSENCES))}); fine if it is '
+                       f'one clear idea')
+    coverage = cine.get('coverage') or {}
+    if not coverage:
+        r.err('cine', 'no cinematography.coverage: name the fixed camera positions (A center, B left, C right)')
+    sides = {v.get('side') for v in coverage.values()}
+    if coverage and not {'center', 'left', 'right'} <= sides:
+        r.warn('cine', 'coverage should hold a center, a left and a right camera, so every cut has a matching angle')
+    for k, v in coverage.items():
+        bad = [w for w in FORBIDDEN_MOVES if w in (v.get('move') or '').lower()]
+        if bad:
+            r.err('cine', f'camera {k} moves with {", ".join(bad)}; coverage cameras are locked off or move slowly')
+    if not look.get('lock'):
+        r.err('cine', 'no look.lock: the tone keywords repeated word for word in every prompt')
+    elif words(look['lock']) > 45:
+        r.warn('cine', f'look.lock has {words(look["lock"])} words; 15-40 precise ones hold better')
+    tone = look.get('tone_refs') or []
+    if not tone:
+        r.warn('cine', 'no look.tone_refs: name 1-3 films (and their cinematographers) for the light and mood')
+    elif len(tone) > 3:
+        r.warn('cine', f'{len(tone)} tone references; 1-3 keep the look coherent')
+    ref = look.get('reference')
+    if not ref:
+        r.err('cine', 'no look.reference: one look frame attached to every image and video generation')
+    elif assets.get(ref, {}).get('type') != 'image' or assets.get(ref, {}).get('kind') != 'look':
+        r.err('cine', f'look.reference {ref} must be an image asset of kind "look"')
+
+    tl = timeline(ep)
+    if not tl:
+        return
+    used, signature, special, words_total = set(), [], [], 0
+    for x in tl:
+        sh = x['shot']
+        where = f'{x["seq"]} at {x["start"]:.1f} s'
+        cam = sh.get('camera')
+        if not cam:
+            r.err('cine', f'{where}: no camera; every shot uses a coverage camera ({", ".join(coverage) or "A, B, C"})')
+            continue
+        used.add(cam)
+        c = coverage.get(cam, {})
+        move = (sh.get('move') or c.get('move') or '').lower()
+        bad = [w for w in FORBIDDEN_MOVES if w in move]
+        if bad:
+            r.err('cine', f'{where}: "{move}" ({", ".join(bad)}) breaks the stitch; lock off, push in or track slowly')
+        if len(sh.get('who') or []) > 2:
+            r.warn('cine', f'{where}: {len(sh["who"])} people in frame; two at most, the scene is a conversation')
+        busy = [w for w in BUSY_ACTION if w in (sh.get('action') or '').lower()]
+        if busy:
+            r.warn('cine', f'{where}: busy action ({", ".join(busy)}); keep it to talking, listening, a walk toward '
+                           f'the camera')
+        angle = (sh.get('angle') or '').lower()
+        if sh.get('signature'):
+            signature.append(where)
+        elif sh.get('angle') and angle != (c.get('angle') or '').lower() and angle not in PLAIN_ANGLES:
+            special.append(where)
+        words_total += sum(words(ln['text']) for ln in sh.get('lines', []))
+    for k in coverage:
+        if k not in used:
+            r.warn('cine', f'camera {k} is never used')
+    if not signature:
+        r.warn('cine', f'no shot is marked "signature": the essence ({essence or "none"}) never shows')
+    elif len(signature) > max(1, round(dur / 10)):
+        r.warn('cine', f'{len(signature)} signature shots in {dur} s; one per 10 s at most, or it stops meaning anything')
+    if len(special) > max(1, int(dur // 30)):
+        r.warn('cine', f'{len(special)} special angles off the coverage ({"; ".join(special)}); one per 30 s at most')
+    asl = sum(x['end'] - x['start'] for x in tl) / len(tl)
+    (r.warn if not 3.5 <= asl <= 8 else r.ok)('cine', f'average planned shot {asl:.1f} s (3.5-8 s lets the acting play)')
+    if essence == 'silence' and words_total / dur > 1.2:
+        r.warn('cine', f'{words_total} words in {dur} s for a "silence" episode; let looks and pauses carry it')
+    # each sequence is a separate generation: cut to another camera at every seam so the stitch hides in a cut
+    seqs = ep.get('sequences', [])
+    for s1, s2 in zip(seqs, seqs[1:]):
+        if not s1.get('shots') or not s2.get('shots'):
+            continue
+        a, b = s1['shots'][-1].get('camera'), s2['shots'][0].get('camera')
+        if a and a == b:
+            r.warn('cine', f'{s1["id"]} ends and {s2["id"]} starts on camera {a}; change camera at the seam')
+    r.ok('cine', f'essence {essence or "-"}; cameras {", ".join(sorted(used))}; {len(signature)} signature shots, '
+                 f'{len(special)} special angles')
 
 
 def budget(ep, base, r):
@@ -271,6 +403,7 @@ def main():
     check_story(ep, r)
     check_beats(ep, r)
     check_shots(ep, base, r)
+    check_cinematic(ep, r)
     money = budget(ep, base, r)
     errors = [x for x in r.items if x[0] == 'error']
     if a.json:

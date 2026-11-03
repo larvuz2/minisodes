@@ -14,7 +14,7 @@ the sequences together and trims the handles.
   first shot of a sequence, so it gets a clean start.
 - **Shots inside.** 2-5 shots of 1.5-5 s each. Vertical micro-drama averages 2-3.5 s a shot; nothing over 6 s
   unless it is a planned hold. `t` is in sequence seconds and the shots cover `[0, duration]` with no gap.
-- **Continuity across sequences.** Same `look`, same location plates, same sheets, hero at Image 1. When a scene
+- **Continuity across sequences.** Same `look`, same location plates, same sheets, hero at @Image 1. When a scene
   continues across two sequences, open the second on the last kept frame of the first (`start_image: "chain"`,
   `shoot.py --start chain`) or on a keyframe.
 
@@ -42,6 +42,9 @@ the sequences together and trims the handles.
   dramatic pause: "a held beat, only the room murmur").
 - **sound**: the sync sounds the picture needs (a glass on the table, a door). No music, ever.
 - **overlay**: the hook text, for the edit (it is not in the prompt).
+- **camera** (cinematic preset): A, B or C from `cinematography.coverage`; the shot inherits that camera's frame,
+  angle, lens and move unless it sets its own. **signature**: true on the few shots that show the essence.
+  Both in `cinematic.md`.
 
 ## Coverage that cuts
 
@@ -67,15 +70,18 @@ No music. No subtitles, captions or on-screen text.
 <aspect> <genre> micro-drama, <duration> seconds, <place>, <time>, <n> shots cut together like a finished scene.
 
 REFERENCES
-Image 1 is Nora's character sheet (full body on the left, face close-ups on the right): keep ...
-Image 2 is ...                      Audio 1 is Nora's voice: Nora speaks only in this voice ...
+@Image 1 is Nora's character sheet (full body on the left, face close-ups on the right): keep ...
+@Image 2 is ...                     @Audio 1 is Nora's voice: Nora speaks only in this voice ...
 
 LOOK
-<style>. Lighting: ... Camera: ... Grade: ... Texture: ... <vertical safe-zone sentence>
+[TONE LOCK, identical in every shot: <look.lock>.] <style>. Lighting: ... Camera: ... Grade: ... Texture: ...
+[Tone references, for light and mood only: ...] [Grade every shot against @Image 6.] <vertical safe zone>
+
+[CINEMATOGRAPHY: essence, rules, coverage cameras A, B, C (cinematic preset)]
 
 SHOTS
 0-2.2 s: EXTREME CLOSE-UP, eye level, 85 mm, slow push-in.
-Nora's eyes over the rim of a champagne flute... Theo (Image 2) leans in... Theo (voice: Audio 2) says, a low
+Nora's eyes over the rim of a champagne flute... Theo (@Image 2) leans in... Theo (voice: @Audio 2) says, a low
 amused whisper: "Smile. Your ex is watching."
 2.2-4 s: Hard cut. INSERT CLOSE-UP, her point of view, 85 mm, static. ...
 
@@ -90,11 +96,14 @@ AVOID
 <look.avoid>, text, subtitles, logos, watermarks, extra people talking, faces or hands that morph.
 ```
 
-- References are tagged by modality and order: Image 1..9, Video 1..3, Audio 1..3 (12 files at most; audio and
-  video clips 2-15 s each and 15 s per type). The REFERENCES block binds each tag; the first mention of each
-  person in SHOTS carries their tag; each line names the voice.
+- References are @-tagged by modality and order: @Image 1..9, @Video 1..3, @Audio 1..3 (12 files at most; audio
+  and video clips 2-15 s each and 15 s per type). The REFERENCES block binds each tag; the first mention of each
+  person in SHOTS carries their tag; each line names the voice. The @ tells the model a reference is meant; the
+  words after it are the model's own names for its inputs (`TAG_STYLES` in `prompt.py` for other models).
+- When the plan has a look frame (`look.reference`), it is attached to every sequence after its own images and
+  LOOK says to grade against it (`cinematic.md`).
 - `prompt_expansion_mode` is `disabled`: the prompt is sent as written.
-- Keep prompts under ~4,500 characters; cut adjectives before shots.
+- Keep prompts under ~5,500 characters (the cinematic blocks add about 1,000); cut adjectives before shots.
 - `MUST` is for fixes after a review (`sequence.must`), short and concrete.
 - Check every prompt with `python3 scripts/prompt.py episode.json` (warnings exit 1) and `shoot.py --dry-run`.
 

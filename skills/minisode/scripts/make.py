@@ -11,6 +11,11 @@ Usage:
   python3 make.py episode.json nora_sheet kf_s01    # only these (and only if missing)
   python3 make.py episode.json theo_voice --force   # rebuild; the old file is kept as name.v1.ext
 
+When the plan names a look reference (look.reference), every image recipe gets it as its last input image, and
+its prompt says so ("@image 3 is the look reference ..."), so sheets, plates and keyframes share one light and
+grade, and plates and keyframes also get the tone lock words (look.lock). Text-to-image recipes switch to the
+model's edit endpoint for that. A recipe opts out with "look": false.
+
 Look at every result before building what depends on it: a wrong sheet poisons every shot.
 Needs FAL_KEY and fal-client unless --estimate.
 """
@@ -24,16 +29,64 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fal_run  # noqa: E402
 
 
-def deps(asset):
+# text-to-image endpoints and the edit endpoint of the same model, which takes reference images
+EDIT_OF = {'fal-ai/nano-banana-pro': 'fal-ai/nano-banana-pro/edit',
+           'openai/gpt-image-2.5/flare/text-to-image': 'openai/gpt-image-2.5/flare/edit',
+           'openai/gpt-image-2.5/sunburst/text-to-image': 'openai/gpt-image-2.5/sunburst/edit',
+           'openai/gpt-image-2': 'openai/gpt-image-2/edit'}
+TAKES_IMAGE_URLS = set(EDIT_OF.values())
+LOOK_NOTE = {
+    'character_sheet': ('take from it only the medium, color science, skin and fabric rendering and grain; keep the '
+                        'plain light-gray studio background and the even light of a reference sheet'),
+    'face': ('take from it only the medium, color science, skin rendering and grain; keep a plain background and '
+             'even light'),
+    'default': ('match its light (direction, softness, color temperature), palette, contrast, lens character and '
+                'grain; take nothing else from it: not its people, objects or composition'),
+}
+
+# sheets keep the even studio light of a reference sheet, so they do not get the tone lock words
+LOCK_SKIP = {'character_sheet', 'face', 'outfit', 'prop'}
+
+
+def with_look(ep, aid, asset):
+    """The asset's recipe with the episode's look reference attached as its last input image."""
+    mk = asset.get('make') or {}
+    look = (ep.get('look') or {}).get('reference')
+    if (not look or not mk or aid == look or asset.get('type') != 'image' or asset.get('kind') == 'look'
+            or mk.get('look') is False):
+        return mk
+    endpoint = EDIT_OF.get(mk['endpoint'], mk['endpoint'])
+    if endpoint not in TAKES_IMAGE_URLS:
+        return mk
+    mk = json.loads(json.dumps(mk))
+    mk['endpoint'] = endpoint
+    files = mk.setdefault('files', {})
+    urls = files.get('image_urls') or []
+    urls = urls if isinstance(urls, list) else [urls]
+    if '@' + look not in urls:
+        urls.append('@' + look)
+    files['image_urls'] = urls
+    n = urls.index('@' + look) + 1
+    note = LOOK_NOTE.get(asset.get('kind'), LOOK_NOTE['default'])
+    args = mk.setdefault('args', {})
+    if f'@image {n} is the look reference' not in args.get('prompt', ''):
+        args['prompt'] = (args.get('prompt', '').rstrip() + f' @image {n} is the look reference: {note}.').strip()
+    lock = (ep.get('look') or {}).get('lock')
+    if lock and asset.get('kind') not in LOCK_SKIP and lock not in args['prompt']:
+        args['prompt'] += f' Light and tone: {lock.rstrip(".")}.'
+    return mk
+
+
+def deps(mk):
     out = []
-    for v in (asset.get('make', {}).get('files') or {}).values():
+    for v in (mk.get('files') or {}).values():
         for f in (v if isinstance(v, list) else [v]):
             if isinstance(f, str) and f.startswith('@'):
                 out.append(f[1:])
     return out
 
 
-def order(assets, wanted):
+def order(ep, assets, wanted):
     seen, out = set(), []
 
     def visit(aid, trail=()):
@@ -43,7 +96,7 @@ def order(assets, wanted):
             sys.exit(f'dependency loop: {" -> ".join(trail + (aid,))}')
         if aid not in assets:
             sys.exit(f'unknown asset {aid}')
-        for d in deps(assets[aid]):
+        for d in deps(with_look(ep, aid, assets[aid])):
             visit(d, trail + (aid,))
         seen.add(aid)
         out.append(aid)
@@ -79,7 +132,7 @@ def main():
         os.environ['MINISODE_BUDGET'] = str(ep['budget_usd'])
     path_of = {aid: os.path.join(base, x['file']) for aid, x in assets.items() if x.get('file')}
     wanted = a.ids or [aid for aid, x in assets.items() if x.get('make')]
-    plan = [aid for aid in order(assets, wanted)
+    plan = [aid for aid in order(ep, assets, wanted)
             if assets[aid].get('make') and (a.force and aid in (a.ids or wanted) or not os.path.exists(path_of[aid]))]
     if not plan:
         print('nothing to build: every asset file exists')
@@ -88,7 +141,7 @@ def main():
     total = 0.0
     for aid in plan:
         x = assets[aid]
-        mk = x['make']
+        mk = with_look(ep, aid, x)
         args = dict(mk.get('args') or {})
         media = {}
         missing = []
