@@ -463,3 +463,131 @@ The look is a dark, cinematic streaming home. Use the existing theme tokens and 
 - Check that approve is refused when the stage does not match.
 - Check that the gallery paginates.
 - Take screenshots of the home and of each approval panel with seeded fake rows, then delete every test row and test file.
+
+## Update 3: the Style select (Social hook or Cinematic)
+
+Episodes come in two styles. The run reads `settings.preset` and follows `skills/minisode/references/cinematic.md`
+for the cinematic one; the page only has to ask, store, send and show it.
+
+### Edge function `supabase/functions/minisodes/index.ts`
+
+- `cleanSettings`: add `preset`, `"social"` (default) or `"cinematic"`; anything else becomes `"social"`. It travels
+  inside `settings` in every fire payload, with nothing else to change in the payload.
+- `start` and `trailer`: when `settings.preset === "cinematic"`, the trailer writer uses
+  `TRAILER_SYSTEM_CINEMATIC` (below, verbatim) instead of `TRAILER_SYSTEM`, and the fallback uses
+  `fallbackCinematicPrompt`. `retrailer` with `rewrite: true` picks the writer from the row's stored settings.
+- `gallery`: accept an optional `preset` filter (`settings->>'preset'`), and return `preset` on each episode
+  (`"social"` when missing).
+
+TRAILER_SYSTEM_CINEMATIC (use verbatim):
+
+```text
+You are a film director and cinematographer. You write the prompt for a 15-second teaser of a cinematic
+minisode, a 1 to 2 minute short film scene for social media. MiniMax H3 Max films your prompt in one
+text-to-video generation with native sound, and the result becomes the look document for the whole episode:
+every later shot will match its characters, place, light and style. Return JSON only, with no markdown fences:
+{"title": "...", "logline": "...", "prompt": "..."}
+
+Write the prompt in English. Spoken lines are in the requested spoken language.
+
+The episode is a quiet scene: two people talking in one place, or walking toward the camera. The teaser shows
+that scene's tension, not an action montage.
+
+Build the prompt in this order:
+
+1. RULES, the first line, exactly: "No title cards, no subtitles, no captions, no on-screen text, no logos."
+2. STYLE, one sentence: the format (vertical 9:16 or widescreen 16:9), the medium and the look. Photoreal live
+   action with a 35 mm feature-film look, unless the concept asks for animation (then a stylized animated
+   feature-film look; never name a studio or a franchise).
+3. TONE LOCK, one sentence of 15 to 30 words: the light's direction and quality, color temperature, palette,
+   contrast, grain and mood. Then TONE: one or two real films and their cinematographers, named for light and
+   mood only ("the soft winter daylight of Manchester by the Sea, shot by Jody Lee Lipes").
+4. CHARACTERS: two (three only if the concept cannot work without), each described once, precisely enough to
+   draw: name, age, body, hair, skin, wardrobe colors, one signature accessory, one behavior tell.
+5. CAMERA: three fixed positions used by every shot, eye level, locked off, 35 mm and 50 mm lenses. Camera A at
+   the center: a wide of the whole place. Camera B on the left: over one shoulder onto the person on the right.
+   Camera C on the right: over the other shoulder onto the person on the left. Choose one essence for the camera
+   from the story (empty space around small figures, high angles looking down, held silences on faces, frames
+   within frames, symmetry, a long lens through glass, low angles, backs and doorways), name it, and show it in
+   two shots at most.
+6. SHOTS: 4 or 5 shots with time codes covering 0-15 s with no gap. The first starts with FADE IN, the others
+   with HARD CUT; then the camera (A, B or C), the shot size, and the action as visible behavior:
+   - 0-4 s: Camera A: the place and the two people in it, the essence at its purest; one walks toward the
+     camera, or turns.
+   - 4-8 s: Camera B, then Camera C: the exchange, one line each.
+   - 8-12 s: the turn: a held look, a pause, a new fact said quietly.
+   - 12-15 s: a held close reaction on Camera B or C, a last line or a silence, then cut to black.
+   No whip pans, crash zooms, speed ramps, slow motion, handheld shake or montage.
+7. DIALOGUE: two or three lines in total, 12 words or fewer each, in quotes, with who says it and how,
+   lip-synced.
+8. SOUND: native audio with the dialogue and the room tone of the place; one low sustained note enters under
+   the last line and stops with the picture; no other score, no whooshes or hits.
+
+The genre shapes the scene: drama = a secret between them; comedy = deadpan, the pause is the joke; romantic
+comedy = what neither of them says; thriller = one of them knows something the other does not; horror = a
+detail in the room the other has not seen; mystery = a lie in plain sight.
+
+Staging: in a vertical frame, the two people stacked in depth, or one person off-center in empty space; eyes in
+the upper third; nothing important in the bottom fifth or along the right edge. In a widescreen frame, compose
+for 16:9 with room around them. The same light in every shot, physically plausible. Original characters only:
+no real people, brands, studios or existing franchises; the films are named for light and mood only.
+
+Keep the prompt under 3,000 characters. The title (1 to 3 words) and the logline (one sentence: who wants what,
+and what is in the way) are for the app only and never appear in the video.
+```
+
+```ts
+function fallbackCinematicPrompt(concept: string, genre: string, aspect: string, language = "en") {
+  const vertical = aspect === "9:16";
+  const style = ANIMATED.test(concept)
+    ? "stylized animated feature-film look, soft rounded 3D shapes, tactile materials, muted harmonious colors"
+    : "photoreal live action, 35 mm feature-film look, natural skin texture, deep enough focus to read the room";
+  const frame = vertical
+    ? "Vertical 9:16, the two people stacked in depth or one off-center in empty space, eyes in the upper third, nothing important in the bottom fifth"
+    : "Widescreen 16:9, room around the people";
+  const label = (GENRES[genre] ?? genre).toLowerCase();
+  const lang = LANGUAGES[language] ?? "English";
+  return [
+    "No title cards, no subtitles, no captions, no on-screen text, no logos.",
+    `STYLE: ${frame}, ${style}. A quiet ${label} short film teaser, 15 seconds, 5 shots.`,
+    "TONE LOCK: soft directional daylight from camera left, natural skin, a muted palette, low contrast, lifted blacks, fine 35 mm grain, still and quiet.",
+    `STORY: ${concept.trim()}`,
+    "CAMERA: three fixed positions, eye level, locked off. Camera A at the center: a wide of the whole place. Camera B on the left: over one shoulder onto the person on the right. Camera C on the right: over the other shoulder onto the person on the left. Lots of empty space around the people.",
+    "SHOTS:",
+    "0-4 s FADE IN: Camera A, wide shot: the place and the two people small in it; one walks toward the camera and stops.",
+    "4-6 s HARD CUT: Camera B, medium close-up: the first says one short line.",
+    "6-8 s HARD CUT: Camera C, medium close-up: the other answers.",
+    "8-12 s HARD CUT: Camera A, wide shot: a long pause between them; neither moves.",
+    "12-15 s HARD CUT: Camera C, close-up: a held look, a last quiet line that leaves the question open; cut to black.",
+    `DIALOGUE: three lines in total, 12 words or fewer each, lip-synced, in ${lang}.`,
+    "SOUND: native audio with the dialogue and the room tone; one low sustained note under the last line; no other music, no whooshes.",
+    "AVOID: whip pans, crash zooms, slow motion, handheld shake, montage, crowds.",
+  ].join("\n").slice(0, MAX_PROMPT);
+}
+```
+
+### Page
+
+- Home composer: a **Style** segmented control next to Genre, default **Social hook**:
+  - **Social hook**: "Scroll-stopping: hook text, fast cuts, a cliffhanger."
+  - **Cinematic**: "A short film scene: two people talking, three fixed cameras, one camera idea, one locked
+    look."
+
+  It is saved as `settings.preset` (`"social"` | `"cinematic"`) and sent with `start` and `create`. The
+  Create settings panel on a trailer shows the same control, prefilled from the row.
+- When Cinematic is picked, the genre stays, the duration stays, and the budget hint adds about $0.25 for the look
+  frame. Under the control, one line: "Best with two characters and one place. Write what they talk about."
+- A **Cinematic** badge on the workspace header and on gallery cards of cinematic episodes; on the home, a
+  **Cinematic** gallery row (after New episodes, from `gallery` with `preset: "cinematic"`) when it has episodes.
+- Guided cast approval: a checkpoint item whose `group` is `"Look"` is the episode's look frame. Show it first,
+  as a wide card titled "The look of the whole episode" with its description and no voice player; it has
+  **Looks right ✓** and **Change…** like a character, and its note goes into `feedback` under its `id`.
+
+### Test (no paid jobs, no real fire)
+
+- `cleanSettings` keeps `"cinematic"`, turns `"other"` and a missing value into `"social"`.
+- A cinematic `trailer` request submits the writer with `TRAILER_SYSTEM_CINEMATIC`; a failed writer uses
+  `fallbackCinematicPrompt`.
+- A cinematic `start` without a trailer fires a payload whose `settings.preset` is `"cinematic"`.
+- A cast checkpoint with a `Look` item renders it first and sends its note under its id.
+- Delete every test row and test file.

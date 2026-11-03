@@ -7,8 +7,10 @@ description: >-
   cinematographer, gray-boxes the locations, generates character sheets, location plates, keyframes and voices
   with fal, films 10-15 s sequences with MiniMax H3 Max reference-to-video under a hard budget, reviews every
   take, cuts it with a measured pacing pass, scores it, mixes it to -14 LUFS with captions and hook text, and
-  delivers it to ShotForge. Use when asked to make a minisode, mini episode, micro-drama, vertical short drama,
-  episodic short or "a 1-minute episode" from an idea or trailer. Not for single clips, music videos or ads.
+  delivers it to ShotForge. Two presets: social (the scroll-stopping micro-drama) and cinematic (quiet
+  conversations, one camera essence, fixed coverage, a locked tone and look frame). Use when asked to make a
+  minisode, mini episode, micro-drama, vertical short drama, cinematic short, episodic short or "a 1-minute
+  episode" from an idea or trailer. Not for single clips, music videos or ads.
 metadata:
   tags: [video, micro-drama, vertical-video, fal, minimax-h3, elevenlabs, editing, storytelling]
   category: creative
@@ -79,6 +81,18 @@ blockout Node 18+ with playwright and Chromium (`npm i three@0.160.0` to serve T
   what was commented. Whatever the user approved is locked for the rest of the episode. The ShotForge saved prompt
   (`prompts/shotforge-routine.md` at the repository root) spells out each phase.
 
+## Presets
+
+The plan's `preset` decides the grammar; ShotForge sends it as `settings.preset`.
+
+- **social** (the default): the micro-drama pressure loop below, built to stop the scroll.
+- **cinematic**: a short film scene that holds a look. Conversations between two people in one place (or a walk
+  toward the camera), one camera essence (empty space, high angles, silence...), three fixed coverage cameras
+  A (center), B (left), C (right) used by every shot, angles rationed, a tone lock repeated word for word in
+  every prompt, 1-3 tone films, and a look frame attached to every image and video generation. Hook text, recap
+  line and the 6 s shot cap do not apply; shots run 3.5-8 s. Read `references/cinematic.md` before writing the
+  story, and plan from `examples/handover/`.
+
 ## Hard rules
 
 - **Story before pixels.** Nothing is generated until the episode sheet is complete and `plan_check.py` shows
@@ -88,12 +102,15 @@ blockout Node 18+ with playwright and Chromium (`npm i three@0.160.0` to serve T
   captions and the hook text are added in the edit.
 - **The format is the contract**: a face or a threat in frame 1, hook text and the first line in 2 s, the stakes
   by 5 s, a recap line in the first 20 s, a re-hook every 15-20 s, the turn near the middle, the cliffhanger as
-  the tension peak and the last frame, lines of 8 words or fewer, 3 characters and 2 locations at most.
+  the tension peak and the last frame, lines of 8 words or fewer, 3 characters and 2 locations at most. The
+  cinematic preset keeps the beats and relaxes the clock (`references/cinematic.md`).
 - **References are bound, not hoped for.** Everyone on screen has an image reference and everyone who speaks a
-  voice reference, in the same sequence. The prompt says what each tag is ("Image 1 is Nora's character sheet").
-  Keep the hero at Image 1 in every sequence. Never more than 9 images, 3 audio, 3 video, 12 files.
+  voice reference, in the same sequence. Every reference has an @ tag in the prompt and the prompt says what it
+  is ("@Image 1 is Nora's character sheet", "Nora (voice: @Audio 1) says"), so the model knows which file to
+  take. Keep the hero at @Image 1 in every sequence. Never more than 9 images, 3 audio, 3 video, 12 files.
 - **Consistent light, lens and staging.** One key direction and color per location for the whole episode, the
-  same lens family, eyelines and screen direction kept across cuts (180-degree rule), the same wardrobe.
+  same lens family, eyelines and screen direction kept across cuts (180-degree rule), the same wardrobe. When
+  the plan has a tone lock (`look.lock`) and a look frame (`look.reference`), they go into every generation.
 - **The budget is a hard cap.** Plan the resolution with `plan_check.py`, keep a quarter of the shot money for
   retakes, never call fal outside the ledger. When the money runs out, finish the best cut of what you have
   and say so; never leave the user with nothing.
@@ -103,6 +120,7 @@ blockout Node 18+ with playwright and Chromium (`npm i three@0.160.0` to serve T
   foreground, hero, threat behind; eyes in the upper third; nothing important in the top 12 %, the bottom 20 %
   or the right rail where the app's buttons sit.
 - **Original only.** No real people, brands, existing characters or franchises; no likeness of a real person.
+  Tone films are named for light and mood only.
 
 ## Reference routing
 
@@ -116,9 +134,11 @@ blockout Node 18+ with playwright and Chromium (`npm i three@0.160.0` to serve T
 | `references/shoot-and-review.md` | filming: budget, takes, the review rubric, retake tactics, the last-resort video reference |
 | `references/edit.md` | cutting: the edit list, pace numbers, J/L cuts, punch-ins, captions, the checks |
 | `references/sound.md` | the score cut to the edit, effects, ducking, loudness |
+| `references/cinematic.md` | the cinematic preset: essences, rationed angles, coverage A/B/C, tone lock, look frame, @ tags |
 
 Templates: `templates/episode.json` (the plan), `templates/layout.json` (a blockout), `templates/edit.json`
-(the cut). A complete worked example: `examples/plus-one/` at the repository root.
+(the cut). Complete worked examples at the repository root: `examples/plus-one/` (social) and
+`examples/handover/` (cinematic).
 
 ## Output expectations
 

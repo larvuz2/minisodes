@@ -7,6 +7,9 @@ when the hook text and the first line land, speech rate and coverage, dead air, 
 the midpoint turn falls, how the episode ends, and with --render the loudness and energy of the master. Writes
 pace.json and pace.svg (beats, the target pressure curve, shots, dialogue, music, effects, markers, energy) and
 prints pass/fail checks. --music-plan writes ElevenLabs Music composition plans for the cues, cut to this edit.
+The thresholds follow the episode's preset: "social" (the default) is the micro-drama pressure loop; "cinematic"
+lets shots and silences breathe (average 3.5-8 s, a change every 12 s, a re-hook every 30 s) and drops the
+hook-text, first-line, recap and sound-off checks.
 
 Usage:
   python3 pace.py edit.json -o pace/
@@ -31,6 +34,11 @@ import assemble  # noqa: E402
 # the pressure loop of the format guide, as (share of runtime, tension)
 TARGET = [(0, 0.75), (0.03, 0.8), (0.12, 0.35), (0.3, 0.55), (0.5, 0.88), (0.68, 0.7), (0.86, 0.38), (1.0, 0.97)]
 ASL = {'comedy': (1.8, 3.2), 'thriller': (1.5, 3.0), 'horror': (1.5, 3.5), 'action': (1.2, 2.5)}
+# thresholds per preset: change gap, longest shot, dead air, re-hook gap, ASL range (None: by genre), hook checks
+PACE = {'social': {'change': 5, 'shot_max': 6, 'quiet': 3, 'rehook': 20, 'asl': None, 'hooks': True, 'last': 4,
+                   'wps': (2.0, 3.6)},
+        'cinematic': {'change': 12, 'shot_max': 12, 'quiet': 8, 'rehook': 30, 'asl': (3.5, 8.0), 'hooks': False,
+                      'last': 8, 'wps': (1.6, 3.4)}}
 REHOOK = {'twist', 'reveal', 'arrival', 'turn', 'cliff', 'new-place', 'new-person', 'new-fact', 'hit'}
 
 
@@ -173,7 +181,10 @@ def analyze(clips, total, edit, ep, words, render):
                 recap_at = round(c['start'], 2)
                 break
     genre = (ep or {}).get('genre', 'drama')
-    lo, hi = ASL.get(genre, (2.0, 3.5))
+    preset = (ep or {}).get('preset', 'social')
+    K = PACE.get(preset, PACE['social'])
+    lo, hi = K['asl'] or ASL.get(genre, (2.0, 3.5))
+    style = preset if K['asl'] else genre
     first_who = clips[0].get('who') if 'who' in clips[0] else shot_of(ep, clips[0].get('shot')).get('who')
     end_music = [m for m in music if abs(m['at'] + m['out'] - m['in'] - total) < 0.3]
 
@@ -191,33 +202,38 @@ def analyze(clips, total, edit, ep, words, render):
         'max_change_gap': max_gap(changes), 'max_rehook_gap': max_gap(rehooks), 'rehooks': rehooks,
         'beats': beats_tl, 'spans': spans,
     }
+    res['preset'], res['shot_limit'] = preset, K['shot_max']
     if render:
         res['loudness'], res['rms'] = render_audio(render)
 
     def chk(name, ok, detail):
         res.setdefault('checks', []).append({'name': name, 'ok': bool(ok), 'detail': detail})
 
-    chk('Face or threat in frame 1', bool(first_who), f'first shot shows {first_who or "nobody"}')
-    chk('Hook text lands by 0.6 s', hook and hook['start'] <= 0.6, f'hook text {res["hook_text"]}')
-    chk('First line by 2 s', first_line is not None and first_line <= 2.0, f'first line at {res["first_line_at"]} s')
-    chk('Recap line in the first 20 s', recap_at is not None and recap_at <= 20, f'recap at {recap_at} s')
-    chk('A re-hook every 20 s', res['max_rehook_gap'][0] <= 20,
+    if K['hooks']:
+        chk('Face or threat in frame 1', bool(first_who), f'first shot shows {first_who or "nobody"}')
+        chk('Hook text lands by 0.6 s', hook and hook['start'] <= 0.6, f'hook text {res["hook_text"]}')
+        chk('First line by 2 s', first_line is not None and first_line <= 2.0,
+            f'first line at {res["first_line_at"]} s')
+        chk('Recap line in the first 20 s', recap_at is not None and recap_at <= 20, f'recap at {recap_at} s')
+    chk(f'A re-hook every {K["rehook"]} s', res['max_rehook_gap'][0] <= K['rehook'],
         f'longest stretch without one {res["max_rehook_gap"][0]} s at {res["max_rehook_gap"][1]}')
-    chk('Something changes every 5 s', res['max_change_gap'][0] <= 5,
+    chk(f'Something changes every {K["change"]} s', res['max_change_gap'][0] <= K['change'],
         f'longest stretch with no cut, line, sound or music event {res["max_change_gap"][0]} s at {res["max_change_gap"][1]}')
-    chk(f'Average shot {lo}-{hi} s ({genre})', lo <= res['asl'] <= hi, f'average {res["asl"]} s, median {res["median"]} s')
-    chk('No shot over 6 s', res['max'] <= 6, f'longest {res["max"]} s')
+    chk(f'Average shot {lo}-{hi} s ({style})', lo <= res['asl'] <= hi, f'average {res["asl"]} s, median {res["median"]} s')
+    chk(f'No shot over {K["shot_max"]} s', res['max'] <= K['shot_max'], f'longest {res["max"]} s')
     chk('Midpoint turn between 35 % and 60 %', twist is not None and 0.35 * total <= twist <= 0.6 * total,
         f'turn at {twist} s of {total:.0f}')
     q = res['speech']['longest_quiet']
-    chk('No dead air over 3 s (unless a planned silence)', (q[1] - q[0]) <= 3 or intended,
+    chk(f'No dead air over {K["quiet"]} s (unless a planned silence)', (q[1] - q[0]) <= K['quiet'] or intended,
         f'quiet {q[0]}-{q[1]} s' + (' (planned silence)' if intended else ''))
-    chk('Speech 2.0-3.6 words/s while talking', 2.0 <= res['speech']['wps_speaking'] <= 3.6 or not nwords,
+    w0, w1 = K['wps']
+    chk(f'Speech {w0}-{w1} words/s while talking', w0 <= res['speech']['wps_speaking'] <= w1 or not nwords,
         f'{res["speech"]["wps_speaking"]} words/s, talking {res["speech"]["coverage"] * 100:.0f} % of the time')
-    chk('Ends on the loaded moment (last shot <= 4 s, no long fade)',
-        durs[-1] <= 4 and all(m.get('fade_out', 0.4) <= 0.2 for m in end_music), f'last shot {durs[-1]:.1f} s')
-    chk('Reads with sound off (captions + hook text)', edit.get('captions', True) and hook is not None,
-        'captions ' + ('on' if edit.get('captions', True) else 'off'))
+    chk(f'Ends on the loaded moment (last shot <= {K["last"]} s, no long fade)',
+        durs[-1] <= K['last'] and all(m.get('fade_out', 0.4) <= 0.2 for m in end_music), f'last shot {durs[-1]:.1f} s')
+    if K['hooks']:
+        chk('Reads with sound off (captions + hook text)', edit.get('captions', True) and hook is not None,
+            'captions ' + ('on' if edit.get('captions', True) else 'off'))
     if render:
         L = res['loudness']
         chk('Loudness -14 LUFS +-1, true peak <= -1 dBTP', abs(L['lufs'] + 14) <= 1 and L['true_peak'] <= -1.0,
@@ -257,7 +273,7 @@ def svg(res, edit, path):
     t = 0.0
     for i, d in enumerate([b - a for a, b in zip([0] + res['cuts'], res['cuts'] + [T])]):
         c = '#3a3546' if i % 2 else '#4a4458'
-        if d > 6:
+        if d > res.get('shot_limit', 6):
             c = '#a33b3b'
         out.append(f'<rect x="{x(t):.1f}" y="{y}" width="{max(1, x(t + d) - x(t) - 1):.1f}" height="26" fill="{c}"/>')
         if x(t + d) - x(t) > 22:

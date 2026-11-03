@@ -23,6 +23,17 @@ sheet from its description with `fal-ai/nano-banana-pro` (text to image) instead
 sheet becomes the style reference: later sheets and plates use `/edit` with it in `image_urls`, so the cast and
 the places share one look.
 
+## The look frame (`kind: look`)
+
+When the plan has a tone lock (always in the cinematic preset, optional in social), build one look frame before
+anything else: the episode's light, palette, contrast and grain in a single image, with no people (or only from
+behind, out of focus). From the trailer: its best frame through an edit model, "same light and grade, remove the
+people". Without one: `openai/gpt-image-2.5/flare/text-to-image` (`image_size: "portrait_16_9"`, `quality:
+"high"`) or `fal-ai/nano-banana-pro`, with the lock words in the prompt. Set `look.reference` to its id: from
+then on `make.py` attaches it to every image recipe (sheets take only medium, color and grain from it and keep
+their studio light; plates and keyframes take its light and also get the lock words), and `prompt.py` attaches it
+to every sequence. Details: `cinematic.md`.
+
 ## Character sheets (`kind: character_sheet`)
 
 One 16:9 sheet per character, generated with `fal-ai/nano-banana-pro/edit` from 1-3 trailer frames of that
@@ -108,6 +119,7 @@ under 5 s.
 | Asset | Endpoint | USD |
 |---|---|---|
 | Sheet, plate, keyframe | `fal-ai/nano-banana-pro(/edit)` | 0.15 each (4K doubles) |
+| Look frame or any image | `openai/gpt-image-2.5/flare(/edit)` | about 0.25 (billed by tokens; xhigh/max double) |
 | Voice sample | `elevenlabs/tts/eleven-v4` | about 0.005 |
 | Designed voice | `fal-ai/minimax/voice-design` | 3.00 |
 | Trailer study, blockout | local | 0 |

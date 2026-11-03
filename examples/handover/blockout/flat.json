@@ -1,0 +1,251 @@
+{
+ "name": "flat",
+ "aspect_ratio": "9:16",
+ "background": "#cfd2d6",
+ "room": {
+  "w": 7,
+  "d": 8,
+  "h": 2.9,
+  "walls": [
+   "north",
+   "south",
+   "east",
+   "west"
+  ]
+ },
+ "sun": {
+  "dir": [
+   0.7,
+   -1,
+   -0.15
+  ],
+  "intensity": 2.0
+ },
+ "practicals": [],
+ "objects": [
+  {
+   "id": "island",
+   "type": "counter",
+   "pos": [
+    0,
+    0,
+    -1.7
+   ],
+   "size": [
+    2.0,
+    0.92,
+    0.8
+   ],
+   "label": "stone island"
+  },
+  {
+   "id": "box_island",
+   "type": "box",
+   "pos": [
+    0.55,
+    0.92,
+    -1.7
+   ],
+   "size": [
+    0.5,
+    0.38,
+    0.4
+   ],
+   "label": "last box"
+  },
+  {
+   "id": "box_door_1",
+   "type": "box",
+   "pos": [
+    0.9,
+    0,
+    -3.6
+   ],
+   "size": [
+    0.5,
+    0.45,
+    0.45
+   ],
+   "label": "boxes"
+  },
+  {
+   "id": "box_door_2",
+   "type": "box",
+   "pos": [
+    0.9,
+    0.45,
+    -3.6
+   ],
+   "size": [
+    0.45,
+    0.4,
+    0.4
+   ],
+   "label": false
+  },
+  {
+   "id": "hall_door",
+   "type": "door",
+   "pos": [
+    0,
+    0,
+    -3.93
+   ],
+   "size": [
+    0.95,
+    2.15
+   ],
+   "label": "hallway door"
+  },
+  {
+   "id": "window_n",
+   "type": "window",
+   "pos": [
+    -3.43,
+    0,
+    -2.0
+   ],
+   "rot": 90,
+   "size": [
+    1.2,
+    2.0
+   ],
+   "sill": 0.5,
+   "label": "window"
+  },
+  {
+   "id": "window_s",
+   "type": "window",
+   "pos": [
+    -3.43,
+    0,
+    1.2
+   ],
+   "rot": 90,
+   "size": [
+    1.2,
+    2.0
+   ],
+   "sill": 0.5,
+   "label": "window"
+  },
+  {
+   "id": "mark_maya",
+   "type": "plane",
+   "pos": [
+    -0.85,
+    0,
+    -0.95
+   ],
+   "size": [
+    0.45,
+    0,
+    0.45
+   ],
+   "color": "#8b5cf6",
+   "label": "Maya's mark"
+  },
+  {
+   "id": "mark_daniel",
+   "type": "plane",
+   "pos": [
+    0.85,
+    0,
+    -0.95
+   ],
+   "size": [
+    0.45,
+    0,
+    0.45
+   ],
+   "color": "#14b8a6",
+   "label": "Daniel's mark"
+  }
+ ],
+ "actors": [
+  {
+   "id": "maya",
+   "name": "Maya (enters)",
+   "pos": [
+    0,
+    0,
+    -3.45
+   ],
+   "rot": 0,
+   "pose": "stand",
+   "height": 1.66,
+   "color": "#8b5cf6"
+  },
+  {
+   "id": "daniel",
+   "name": "Daniel",
+   "pos": [
+    0.85,
+    0,
+    -0.95
+   ],
+   "rot": -90,
+   "pose": "stand",
+   "height": 1.84,
+   "color": "#14b8a6"
+  }
+ ],
+ "cameras": [
+  {
+   "id": "A",
+   "pos": [
+    0,
+    1.35,
+    3.6
+   ],
+   "look": [
+    0,
+    1.15,
+    -2.0
+   ],
+   "lens": 35
+  },
+  {
+   "id": "B",
+   "pos": [
+    -2.2,
+    1.5,
+    -0.55
+   ],
+   "look": [
+    0.85,
+    1.62,
+    -0.95
+   ],
+   "lens": 50
+  },
+  {
+   "id": "C",
+   "pos": [
+    2.2,
+    1.5,
+    -0.55
+   ],
+   "look": [
+    -0.85,
+    1.5,
+    -0.95
+   ],
+   "lens": 50
+  },
+  {
+   "id": "A_high",
+   "pos": [
+    0,
+    2.75,
+    2.4
+   ],
+   "look": [
+    0,
+    0,
+    -1.4
+   ],
+   "lens": 24
+  }
+ ]
+}
